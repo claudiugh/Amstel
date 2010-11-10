@@ -1,6 +1,11 @@
 package nl.vu.cs.amstel;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import nl.vu.cs.amstel.graph.GraphInput;
+import nl.vu.cs.amstel.graph.InputPartition;
 
 import ibis.ipl.Ibis;
 import ibis.ipl.IbisIdentifier;
@@ -50,8 +55,14 @@ public class Master {
 		for (int i = 0; i < workers.length; i++) {
 			sender.connect(workers[i], "m2w");
 		}
-		// we also have a barrier here
-		barrierRelease();
+		// we have to send the partitions distribution to each worker
+		// in this case partitions are 1-1 mapped to workers
+		WriteMessage w = sender.newMessage();
+		// send the partitions 
+		w.writeObject(workers);
+		// send the input partitions
+		w.writeObject(partitionInput());
+		w.finish();
 	}
 	
 	private void superstep() throws IOException {
@@ -67,6 +78,23 @@ public class Master {
 		}
 	}
 	
+	private Map<IbisIdentifier, InputPartition> partitionInput() {
+		HashMap<IbisIdentifier, InputPartition> partitions = 
+			new HashMap<IbisIdentifier, InputPartition>();
+		int perWorker = GraphInput.VERTEXES / workers.length;
+		int remaining = GraphInput.VERTEXES - workers.length * perWorker;
+		int from = 0;
+		for (int i = 0; i < workers.length; i++) {
+			int count = (i < remaining) ? perWorker + 1 : perWorker;
+			partitions.put(workers[i],
+				new InputPartition(GraphInput.vertexes[from], count)
+			);
+			from += count;
+		}
+		System.out.println(partitions);
+		return partitions;
+	}
+	
 	public Master(Ibis ibis, int workersNo) throws Exception {
 		this.ibis = ibis;
 		workers = new IbisIdentifier[workersNo];
@@ -76,6 +104,7 @@ public class Master {
 		run();
 		receiver.close();
 		sender.close();
+		ibis.end();
 	}
 	
 }
