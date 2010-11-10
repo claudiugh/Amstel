@@ -20,25 +20,9 @@ public class Worker {
 	private IbisIdentifier master;
 	private SendPort masterSender;
 	private ReceivePort masterReceiver;
+	private WorkerBarrier barrier;
 	private IbisIdentifier[] partitions;
 	private InputPartition inputPartition;
-	
-	private void syncBarrier() throws IOException {
-		ReadMessage r = masterReceiver.receive();
-		String msg = r.readString();
-		if (!msg.equals("release")) {
-			System.err.println("expecting 'release', got " + msg);			
-		}
-		r.finish();	
-	}
-	
-	private void enterBarrier() throws IOException {
-		System.out.println("Entering in the barrier");
-		WriteMessage w = masterSender.newMessage();
-		w.writeString("barrier");
-		w.finish();
-		syncBarrier();
-	}
 	
 	@SuppressWarnings("unchecked")
 	private void register() throws IOException {
@@ -67,23 +51,28 @@ public class Worker {
 	private void run() throws IOException {
 		register();
 		readInput();
-		enterBarrier();
+		barrier.enter();
 		System.out.println("Step 1");
-		enterBarrier();
+		barrier.enter();
 		System.out.println("Step 2: Exit");
 	}
 	
 	public Worker(Ibis ibis, IbisIdentifier master) throws IOException {
+		// setup
 		this.ibis = ibis;
 		this.master = master;
 		masterSender = ibis.createSendPort(Node.W2M_PORT);
 		masterSender.connect(master, "w2m");
 		masterReceiver = ibis.createReceivePort(Node.M2W_PORT, "m2w");
 		masterReceiver.enableConnections();
+		barrier = new WorkerBarrier(masterSender, masterReceiver);
+		
+		// run the work
 		run();
+		
+		// exit
 		masterSender.close();
 		masterReceiver.close();
 		ibis.end();
-		System.out.println("Leaving Ibis");
 	}
 }

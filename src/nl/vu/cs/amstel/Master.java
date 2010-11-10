@@ -19,25 +19,8 @@ public class Master {
 	private Ibis ibis;
 	private ReceivePort receiver;
 	private SendPort sender;
+	private MasterBarrier barrier;
 	private IbisIdentifier[] workers;
-	
-	private void barrierWait() throws IOException {
-		System.out.println("Waiting for everyone...");
-		for (int i = 0; i < workers.length; i++) {
-			ReadMessage r = receiver.receive();
-			String message = r.readString();
-			if (!message.equals("barrier")) {
-				System.err.println("expecting 'barrier', got " + message);
-			}
-			r.finish();
-		}
-	}
-	
-	private void barrierRelease() throws IOException {
-		WriteMessage w = sender.newMessage();
-		w.writeString("release");
-		w.finish();
-	}
 	
 	private void registration() throws Exception {
 		System.out.println("Begin registration");
@@ -66,9 +49,9 @@ public class Master {
 	}
 	
 	private void superstep() throws IOException {
-		barrierWait();
+		barrier.await();
 		System.out.println("perform superstep");
-		barrierRelease();
+		barrier.release();
 	}
 	
 	private void run() throws Exception {
@@ -87,21 +70,25 @@ public class Master {
 		for (int i = 0; i < workers.length; i++) {
 			int count = (i < remaining) ? perWorker + 1 : perWorker;
 			partitions.put(workers[i],
-				new InputPartition(GraphInput.vertexes[from], count)
-			);
+				new InputPartition(GraphInput.vertexes[from], count));
 			from += count;
 		}
-		System.out.println(partitions);
 		return partitions;
 	}
 	
 	public Master(Ibis ibis, int workersNo) throws Exception {
+		// setup
 		this.ibis = ibis;
 		workers = new IbisIdentifier[workersNo];
 		receiver = ibis.createReceivePort(Node.W2M_PORT, "w2m");
 		receiver.enableConnections();
 		sender = ibis.createSendPort(Node.M2W_PORT, "m2w");
+		barrier = new MasterBarrier(workersNo, sender, receiver);
+		
+		// the actual running 
 		run();
+		
+		// exit
 		receiver.close();
 		sender.close();
 		ibis.end();

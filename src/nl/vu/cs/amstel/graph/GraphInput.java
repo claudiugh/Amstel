@@ -25,7 +25,8 @@ public class GraphInput {
 	 * @param partition
 	 * @return
 	 */
-	public static Map<String, ArrayList<String>> readVertexes(InputPartition partition) {
+	public static Map<String, ArrayList<String>> readVertexes(
+			InputPartition partition) {
 		HashMap<String,ArrayList<String>> data = 
 			new HashMap<String, ArrayList<String>>();
 		int vId = 0;
