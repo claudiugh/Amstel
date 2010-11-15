@@ -2,10 +2,14 @@ package nl.vu.cs.amstel;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import nl.vu.cs.amstel.graph.GraphInput;
 import nl.vu.cs.amstel.graph.InputPartition;
+import nl.vu.cs.amstel.msg.MessageReceiver;
+import nl.vu.cs.amstel.msg.MessageRouter;
 
 import ibis.ipl.Ibis;
 import ibis.ipl.IbisIdentifier;
@@ -20,9 +24,16 @@ public class Worker {
 	private IbisIdentifier master;
 	private SendPort masterSender;
 	private ReceivePort masterReceiver;
+	private ReceivePort receiver;
 	private WorkerBarrier barrier;
 	private IbisIdentifier[] partitions;
 	private InputPartition inputPartition;
+	private Map<String, VertexState> vertexes = 
+		Collections.synchronizedMap(new HashMap<String, VertexState>()); 
+	
+	// messaging entities
+	private MessageReceiver messageReceiver;
+	private MessageRouter messageRouter;
 	
 	@SuppressWarnings("unchecked")
 	private void register() throws IOException {
@@ -35,7 +46,6 @@ public class Worker {
 			Map<IbisIdentifier, InputPartition> inputPartitions = 
 				(Map<IbisIdentifier, InputPartition>) r.readObject();
 			inputPartition = inputPartitions.get(ibis.identifier());
-			System.out.println("My input partition is: " + inputPartition);
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		}
@@ -45,13 +55,28 @@ public class Worker {
 	private void readInput() throws IOException {
 		Map<String, ArrayList<String>> inputVertexes = 
 			GraphInput.readVertexes(inputPartition);
-		System.out.println("Input data: " + inputVertexes);
+		for (String vertex : inputVertexes.keySet()) {
+			VertexState state = new VertexState(vertex, 
+				inputVertexes.get(vertex), 10);
+			messageRouter.send(state);
+		}
+	}
+	
+	private void setupMessaging() throws IOException {
+		messageReceiver = new MessageReceiver(vertexes);
+		receiver = ibis.createReceivePort(Node.W2W_PORT, "worker",
+			messageReceiver);
+		receiver.enableConnections();
+		receiver.enableMessageUpcalls();
+		messageRouter = new MessageRouter(ibis, partitions, vertexes);
 	}
 	
 	private void run() throws IOException {
 		register();
+		setupMessaging();
 		readInput();
 		barrier.enter();
+		System.out.println("My vertexes are: " + vertexes);
 		System.out.println("Step 1");
 		barrier.enter();
 		System.out.println("Step 2: Exit");

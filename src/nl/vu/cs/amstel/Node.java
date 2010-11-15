@@ -19,8 +19,8 @@ public class Node {
     			PortType.CONNECTION_ONE_TO_MANY);
     public static PortType W2W_PORT =
     	new PortType(PortType.COMMUNICATION_RELIABLE, 
-    			PortType.SERIALIZATION_OBJECT, PortType.RECEIVE_EXPLICIT,
-    			PortType.CONNECTION_ONE_TO_ONE);
+    			PortType.SERIALIZATION_DATA, PortType.RECEIVE_AUTO_UPCALLS,
+    			PortType.CONNECTION_MANY_TO_ONE);
     
     IbisCapabilities ibisCapabilities = new IbisCapabilities(
             IbisCapabilities.ELECTIONS_STRICT);	
