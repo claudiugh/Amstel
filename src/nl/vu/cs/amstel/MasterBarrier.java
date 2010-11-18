@@ -26,7 +26,8 @@ public class MasterBarrier {
 	 * blocks until all members enter in the barrier
 	 * @throws IOException 
 	 */
-	public void await() throws IOException {
+	public int await() throws IOException {
+		int activeVertexes = 0;
 		for (int i = 0; i < members; i++) {
 			ReadMessage r = receiver.receive();
 			int code = r.readInt();
@@ -34,17 +35,20 @@ public class MasterBarrier {
 				System.err.println("Incorrect barrier enter code. "
 						+ "Expecting " + BARRIER_ENTER + ", got " + code);
 			}
+			activeVertexes += r.readInt();
 			r.finish();
 		}
+		return activeVertexes;
 	}
 	
 	/**
 	 * Releases all the members from the barrier
 	 * @throws IOException
 	 */
-	public void release() throws IOException {
+	public void release(int superstep) throws IOException {
 		WriteMessage w = sender.newMessage();
 		w.writeInt(BARRIER_RELEASE);
+		w.writeInt(superstep);
 		w.finish();
 	}
 }

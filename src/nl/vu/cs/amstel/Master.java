@@ -1,6 +1,5 @@
 package nl.vu.cs.amstel;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -48,16 +47,24 @@ public class Master {
 		w.finish();
 	}
 	
-	private void superstep() throws IOException {
-		barrier.await();
-		System.out.println("perform superstep");
-		barrier.release();
-	}
-	
 	private void run() throws Exception {
+		// setup phase 
 		registration();
-		for (int i = 0; i < 2; i++) {
-			superstep();
+		// reading input
+		barrier.await();
+		barrier.release(0);
+		// run the super-steps 
+		int superstep = 0;
+		int activeVertexes = 1;
+		while (activeVertexes > 0) {
+			System.out.println("Awaiting workers");
+			activeVertexes = barrier.await();
+			if (activeVertexes == 0) {
+				// end of the algorithm
+				superstep = -1;
+			}
+			barrier.release(superstep);
+			superstep++;
 		}
 	}
 	

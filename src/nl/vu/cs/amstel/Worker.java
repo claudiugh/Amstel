@@ -10,6 +10,7 @@ import nl.vu.cs.amstel.graph.GraphInput;
 import nl.vu.cs.amstel.graph.InputPartition;
 import nl.vu.cs.amstel.msg.MessageReceiver;
 import nl.vu.cs.amstel.msg.MessageRouter;
+import nl.vu.cs.amstel.user.Vertex;
 
 import ibis.ipl.Ibis;
 import ibis.ipl.IbisIdentifier;
@@ -34,6 +35,9 @@ public class Worker {
 	// messaging entities
 	private MessageReceiver messageReceiver;
 	private MessageRouter messageRouter;
+	
+	// state of the computation
+	private WorkerState state;
 	
 	@SuppressWarnings("unchecked")
 	private void register() throws IOException {
@@ -63,26 +67,65 @@ public class Worker {
 	}
 	
 	private void setupMessaging() throws IOException {
-		messageReceiver = new MessageReceiver(vertexes);
-		receiver = ibis.createReceivePort(Node.W2W_PORT, "worker",
-			messageReceiver);
+		receiver = ibis.createReceivePort(Node.W2W_PORT, "worker");
 		receiver.enableConnections();
-		receiver.enableMessageUpcalls();
+		// this is a thread that only listens for incoming messages
 		messageRouter = new MessageRouter(ibis, partitions, vertexes);
+		messageReceiver = new MessageReceiver(receiver, messageRouter, 
+			vertexes);
+		messageReceiver.start();
+		state = new WorkerState(messageRouter);
 	}
 	
-	private void run() throws IOException {
+	private void computeVertexes(Vertex v) throws IOException {
+		for (String vertex : vertexes.keySet()) {
+			VertexState state = vertexes.get(vertex);
+			if (state.isActive()) {
+				v.setState(state);
+				state.nextSuperstep();
+				v.compute(state.getInbox());
+			}
+		}
+	}
+	
+	private int nextSuperstep() {
+		int activeVertexes = 0;
+		for (String vertex : vertexes.keySet()) {
+			if (vertexes.get(vertex).nextSuperstep()) {
+				activeVertexes++;
+			}
+		}
+		return activeVertexes;
+	}
+	
+	private void run() throws IOException, InterruptedException {
 		register();
 		setupMessaging();
+		// reading input and distribute vertexes
 		readInput();
-		barrier.enter();
-		System.out.println("My vertexes are: " + vertexes);
-		System.out.println("Step 1");
-		barrier.enter();
-		System.out.println("Step 2: Exit");
+		messageRouter.waitForAck();
+		barrier.enter(1);
+		// hack: lets time to deliver the messages
+		state.activeVertexes = vertexes.size();
+		Vertex v = new Vertex();
+		v.setWorkerState(state);
+		while ((state.superstep = barrier.enter(state.activeVertexes)) >= 0) {
+			if (state.superstep == 0) {
+				System.out.println("Data: " + vertexes);
+			}
+			System.out.println("Running superstep " + state.superstep);
+			computeVertexes(v);
+			messageRouter.flush();
+			messageRouter.waitForAck();
+			state.activeVertexes = nextSuperstep();
+		}
+		
+		// close all
+		receiver.close();
+		messageReceiver.join();
 	}
 	
-	public Worker(Ibis ibis, IbisIdentifier master) throws IOException {
+	public Worker(Ibis ibis, IbisIdentifier master) throws IOException, InterruptedException {
 		// setup
 		this.ibis = ibis;
 		this.master = master;

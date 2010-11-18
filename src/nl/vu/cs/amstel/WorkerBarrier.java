@@ -19,12 +19,16 @@ public class WorkerBarrier {
 	
 	/**
 	 * blocks until every reached the barrier and the master ordered the release
+	 * it sends the number of active vertexes
 	 * @throws IOException
+	 * @return true if the algorithm is finished
+	 *         false otherwise
 	 */
-	public void enter() throws IOException {
+	public int enter(int activeVertexes) throws IOException {
 		// enqueue myself in the barrier
 		WriteMessage w = sender.newMessage();
 		w.writeInt(MasterBarrier.BARRIER_ENTER);
+		w.writeInt(activeVertexes);
 		w.finish();
 		// block until I get the release message
 		ReadMessage r = receiver.receive();
@@ -33,7 +37,9 @@ public class WorkerBarrier {
 			System.err.println("Incorrect barrier release code. Expecting "
 					+ MasterBarrier.BARRIER_RELEASE + ", got " + code);
 		}
+		int superstep = r.readInt();
 		r.finish();
+		return superstep;
 	}
 	
 }

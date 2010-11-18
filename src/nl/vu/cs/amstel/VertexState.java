@@ -5,6 +5,9 @@ import ibis.ipl.WriteMessage;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
+
+import nl.vu.cs.amstel.user.MessageValue;
 
 public class VertexState {
 
@@ -12,11 +15,41 @@ public class VertexState {
 	private ArrayList<String> edges;
 	private int value;
 	private boolean active = true;
+	private boolean hasMessages = false;
+	private List<MessageValue> inbox = new ArrayList<MessageValue>();
+	private List<MessageValue> futureInbox = new ArrayList<MessageValue>();
 	
 	public VertexState(String vid, ArrayList<String> edges, int value) {
 		this.vid = vid;
 		this.edges = edges;
 		this.value = value;
+	}
+	
+	public List<MessageValue> getInbox() {
+		return inbox;
+	}
+	
+	public void deliver(MessageValue m) {
+		System.out.println(vid + " received " + value);
+		hasMessages = true;
+		futureInbox.add(m);
+	}
+	
+	private void switchInboxes() {
+		inbox.clear();
+		List<MessageValue> tmp = inbox;
+		inbox = futureInbox;
+		futureInbox = tmp;
+	}
+	
+	public boolean nextSuperstep() {
+		switchInboxes();
+		if (hasMessages) {
+			active = true;
+		}
+		hasMessages = false;
+		// return active state
+		return active;
 	}
 	
 	public void serialize(WriteMessage msg) throws IOException {
@@ -43,7 +76,27 @@ public class VertexState {
 		return vid;
 	}
 	
+	public int getValue() {
+		return value;
+	}
+	
+	public void setValue(int value) {
+		this.value = value;
+	}
+	
+	public List<String> getOutEdges() {
+		return edges;
+	}
+	
+	public void setActive(boolean active) {
+		this.active = active;
+	}
+	
+	public boolean isActive() {
+		return active;
+	}
+	
 	public String toString() {
-		return "[" + vid + "]: " + edges; 
+		return "[" + value + "]: " + edges; 
 	}
 }
