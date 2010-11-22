@@ -22,28 +22,18 @@ public class MessageRouter {
 	private IbisIdentifier[] partitions;
 	private Map<String, VertexState> vertexes;
 	
-	
-	private int packetNo = 0; 
-	private Set<Integer> packets = Collections.synchronizedSet(
-		new HashSet<Integer>());
 	// the send ports for each other worker
 	private Map<IbisIdentifier, SendPort> senders = 
 		new HashMap<IbisIdentifier, SendPort>();
 	// the send buffers for each worker
 	private Map<IbisIdentifier, OutgoingQueue> buffers =
 		new HashMap<IbisIdentifier, OutgoingQueue>();
+	// active worker channels
+	private Set<IbisIdentifier> activeWorkers =
+		Collections.synchronizedSet(new HashSet<IbisIdentifier>());
 	
 	private IbisIdentifier getOwner(String vid) {
 		return partitions[vid.hashCode() % partitions.length];
-	}
-	
-	private int nextPacketNo() {
-		packetNo = (packetNo + 1) % Integer.MAX_VALUE;
-		return packetNo;
-	}
-	
-	private void addPacket(int packetNo) {
-		packets.add(packetNo);
 	}
 	
 	public MessageRouter(Ibis ibis, IbisIdentifier[] partitions, 
@@ -53,18 +43,28 @@ public class MessageRouter {
 		this.vertexes = vertexes;
 	}
 	
-	public synchronized void ackPacket(int packetNo) {
-		System.out.println("Ack for packet " + packetNo + " - " + packets);
-		packets.remove(packetNo);
-		if (packets.size() == 0) {
+	public synchronized void deactivateWorker(IbisIdentifier worker) {
+		System.out.println("Ack for " + worker);
+		activeWorkers.remove(worker);
+		if (activeWorkers.size() == 0) {
 			notify();
 		}
 	}
 	
-	public synchronized void waitForAck() throws InterruptedException {
-		if (packets.size() > 0) {
-			System.out.println("Packets to be acked: " + packets);
-			wait();
+	private synchronized void waitFlushAck() {
+		if (activeWorkers.size() > 0) {
+			System.out.println("Channels to be acked: " + activeWorkers);
+			try {
+				wait();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	private void activateWorker(IbisIdentifier worker) {
+		if (!activeWorkers.contains(worker)) {
+			activeWorkers.add(worker);
 		}
 	}
 	
@@ -85,17 +85,14 @@ public class MessageRouter {
 			vertexes.put(vertex.getID(), vertex);
 		} else {
 			// send to the owner
-			System.out.println("Sending " + vertex.getID());
 			SendPort sender = getSender(owner);
 			synchronized(sender) {
 				WriteMessage w = sender.newMessage();
 				w.writeInt(MessageReceiver.INPUT_MSG);
-				int packetNo = nextPacketNo();
-				addPacket(packetNo);
-				w.writeInt(packetNo);
 				vertex.serialize(w);
 				w.finish();
 			}
+			activateWorker(owner);
 		}
 	}
 	
@@ -104,12 +101,10 @@ public class MessageRouter {
 		synchronized(sender) {
 			WriteMessage w = sender.newMessage();
 			w.writeInt(MessageReceiver.COMPUTE_MSG);
-			int packetNo = nextPacketNo();
-			addPacket(packetNo);
-			w.writeInt(packetNo);
 			buffer.sendBulk(w);
 			w.finish();
-		}		
+		}
+		activateWorker(worker);
 	}
 	
 	public void send(String toVertex, MessageValue msg) throws IOException {
@@ -127,12 +122,31 @@ public class MessageRouter {
 		}
 	}
 	
+	private void sendFlush(IbisIdentifier worker) throws IOException {
+		SendPort sender = getSender(worker);
+		synchronized(sender) {
+			WriteMessage w = sender.newMessage();
+			w.writeInt(MessageReceiver.FLUSH_MSG);
+			w.finish();
+		}
+	}
+	
 	public void flush() throws IOException {
 		for (IbisIdentifier worker : senders.keySet()) {
 			OutgoingQueue buffer = buffers.get(worker);
 			if (buffer.getCount() > 0) {
 				sendBuffer(worker, buffer);
 			}
+			if (activeWorkers.contains(worker)) {
+				sendFlush(worker);
+			}
+		}
+		waitFlushAck();
+	}
+	
+	public void close() throws IOException {
+		for (IbisIdentifier worker : senders.keySet()) {
+			getSender(worker).close();
 		}
 	}
 	

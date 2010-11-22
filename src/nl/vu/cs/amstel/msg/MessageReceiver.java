@@ -16,7 +16,8 @@ public class MessageReceiver extends Thread {
 
 	public static final int INPUT_MSG = 0x100;
 	public static final int COMPUTE_MSG = 0x200;
-	public static final int ACK_MSG = 0x300;
+	public static final int FLUSH_MSG = 0x300;
+	public static final int FLUSH_ACK_MSG = 0x400;
 	
 	private Map<String, VertexState> vertexes;
 	private ReceivePort receiver;
@@ -29,30 +30,16 @@ public class MessageReceiver extends Thread {
 		this.vertexes = vertexes;
 	}
 	
-	private void sendAck(ReadMessage r) throws IOException {
-		SendPort sender = router.getSender(r.origin().ibisIdentifier());
-		int packetNo = r.readInt();
-		synchronized(sender) {
-			WriteMessage w = sender.newMessage();
-			w.writeInt(ACK_MSG);
-			w.writeInt(packetNo);
-			w.finish();
-		}
-	}
-	
 	private void inputMessage(ReadMessage msg) throws IOException {
-		sendAck(msg);
 		VertexState vertex = VertexState.deserialize(msg);
 		vertexes.put(vertex.getID(), vertex);		
 		System.out.println("Received input vertex " + vertex.getID());
 	}
 	
 	private void computeMessage(ReadMessage r) throws IOException {
-		sendAck(r);
 		int count = r.readInt();
 		for (int i = 0; i < count; i++) {
 			String vertex = r.readString();
-			System.out.println("Received message for " + vertex);
 			int msgCount = r.readInt();
 			for (int j = 0; j < msgCount; j++) {
 				MessageValue msg = new MessageValue();
@@ -62,9 +49,13 @@ public class MessageReceiver extends Thread {
 		}
 	}
 
-	private void ackMessage(ReadMessage r) throws IOException {
-		int packetNo = r.readInt();
-		router.ackPacket(packetNo);
+	private void sendFlushAck(ReadMessage r) throws IOException {
+		SendPort sender = router.getSender(r.origin().ibisIdentifier());
+		synchronized(sender) {
+			WriteMessage w = sender.newMessage();
+			w.writeInt(FLUSH_ACK_MSG);
+			w.finish();
+		}
 	}
 	
 	public void run() {
@@ -76,11 +67,15 @@ public class MessageReceiver extends Thread {
 				switch (msgType) {
 				case INPUT_MSG: inputMessage(r); break;
 				case COMPUTE_MSG: computeMessage(r); break;
-				case ACK_MSG: ackMessage(r); break;
+				case FLUSH_MSG: sendFlushAck(r); break;
+				case FLUSH_ACK_MSG: 
+					router.deactivateWorker(r.origin().ibisIdentifier()); 
+					break;
 				default: System.err.println("Unknown message type");
 				}
 				r.finish();
 			} catch (ConnectionClosedException e) {
+				// this is caused by receiver.close() call from the main thread
 				break;	
 			} catch (IOException e) {
 				e.printStackTrace();

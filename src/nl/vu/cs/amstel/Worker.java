@@ -66,7 +66,7 @@ public class Worker {
 		}
 	}
 	
-	private void setupMessaging() throws IOException {
+	private void setupWorkerConnections() throws IOException {
 		receiver = ibis.createReceivePort(Node.W2W_PORT, "worker");
 		receiver.enableConnections();
 		// this is a thread that only listens for incoming messages
@@ -75,6 +75,17 @@ public class Worker {
 			vertexes);
 		messageReceiver.start();
 		state = new WorkerState(messageRouter);
+	}
+	
+	private void closeWorkerConnections() throws IOException {
+		messageRouter.close();
+		// this will cause the receiver thread to exit
+		receiver.close();
+		try {
+			messageReceiver.join();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}		
 	}
 	
 	private void computeVertexes(Vertex v) throws IOException {
@@ -100,10 +111,10 @@ public class Worker {
 	
 	private void run() throws IOException, InterruptedException {
 		register();
-		setupMessaging();
+		setupWorkerConnections();
 		// reading input and distribute vertexes
 		readInput();
-		messageRouter.waitForAck();
+		messageRouter.flush();
 		barrier.enter(1);
 		// hack: lets time to deliver the messages
 		state.activeVertexes = vertexes.size();
@@ -116,13 +127,11 @@ public class Worker {
 			System.out.println("Running superstep " + state.superstep);
 			computeVertexes(v);
 			messageRouter.flush();
-			messageRouter.waitForAck();
 			state.activeVertexes = nextSuperstep();
 		}
 		
-		// close all
-		receiver.close();
-		messageReceiver.join();
+		// close connections
+		closeWorkerConnections();
 	}
 	
 	public Worker(Ibis ibis, IbisIdentifier master) throws IOException, InterruptedException {
