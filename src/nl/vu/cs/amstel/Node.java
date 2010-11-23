@@ -1,5 +1,8 @@
 package nl.vu.cs.amstel;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+
 import ibis.ipl.Ibis;
 import ibis.ipl.IbisCapabilities;
 import ibis.ipl.IbisFactory;
@@ -39,6 +42,9 @@ public class Node {
 	}
 	
 	public static void main(String args[]) {
+		Logger logger = Logger.getLogger("nl.vu.cs.amstel");
+		logger.setLevel(Level.ALL);
+
 		try {
 			new Node().run();
 		} catch (Exception e) {

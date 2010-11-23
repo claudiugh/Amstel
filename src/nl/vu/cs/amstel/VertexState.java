@@ -30,7 +30,6 @@ public class VertexState {
 	}
 	
 	public void deliver(MessageValue m) {
-		System.out.println(vid + " received " + value);
 		hasMessages = true;
 		futureInbox.add(m);
 	}

@@ -3,6 +3,8 @@ package nl.vu.cs.amstel;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 import nl.vu.cs.amstel.graph.GraphInput;
 import nl.vu.cs.amstel.graph.InputPartition;
 
@@ -15,6 +17,8 @@ import ibis.ipl.WriteMessage;
 
 public class Master {
 
+	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
+	
 	private Ibis ibis;
 	private ReceivePort receiver;
 	private SendPort sender;
@@ -22,16 +26,16 @@ public class Master {
 	private IbisIdentifier[] workers;
 	
 	private void registration() throws Exception {
-		System.out.println("Begin registration");
+		logger.info("Begin registration");
 		for (int regId = 0; regId < workers.length; regId++) {
 			ReadMessage r = receiver.receive();
 			String msg = r.readString();
 			if (!msg.equals("register")) {
-				System.err.println("'register' expected, got " + msg);
+				logger.fatal("'register' expected, got " + msg);
 			}
 			workers[regId] = r.origin().ibisIdentifier();
 			r.finish();
-			System.out.println("Received from " + workers[regId]);
+			logger.info(workers[regId] + " joined");
 		}
 		
 		for (int i = 0; i < workers.length; i++) {
@@ -57,7 +61,7 @@ public class Master {
 		int superstep = 0;
 		int activeVertexes = 1;
 		while (activeVertexes > 0) {
-			System.out.println("Awaiting workers");
+			logger.info("Awaiting workers to enter in the barrier...");
 			activeVertexes = barrier.await();
 			if (activeVertexes == 0) {
 				// end of the algorithm

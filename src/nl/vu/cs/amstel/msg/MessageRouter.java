@@ -7,6 +7,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.log4j.Logger;
+
 import nl.vu.cs.amstel.Node;
 import nl.vu.cs.amstel.VertexState;
 import nl.vu.cs.amstel.user.MessageValue;
@@ -18,6 +20,8 @@ import ibis.ipl.WriteMessage;
 
 public class MessageRouter {
 
+	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
+	
 	private Ibis ibis;
 	private IbisIdentifier[] partitions;
 	private Map<String, VertexState> vertexes;
@@ -44,7 +48,6 @@ public class MessageRouter {
 	}
 	
 	public synchronized void deactivateWorker(IbisIdentifier worker) {
-		System.out.println("Ack for " + worker);
 		activeWorkers.remove(worker);
 		if (activeWorkers.size() == 0) {
 			notify();
@@ -53,7 +56,7 @@ public class MessageRouter {
 	
 	private synchronized void waitFlushAck() {
 		if (activeWorkers.size() > 0) {
-			System.out.println("Channels to be acked: " + activeWorkers);
+			logger.info("Channels to be acked: " + activeWorkers);
 			try {
 				wait();
 			} catch (InterruptedException e) {

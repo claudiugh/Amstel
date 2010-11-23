@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 import nl.vu.cs.amstel.graph.GraphInput;
 import nl.vu.cs.amstel.graph.InputPartition;
 import nl.vu.cs.amstel.msg.MessageReceiver;
@@ -21,6 +23,8 @@ import ibis.ipl.WriteMessage;
 
 public class Worker {
 
+	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
+	
 	private Ibis ibis;
 	private IbisIdentifier master;
 	private SendPort masterSender;
@@ -122,9 +126,9 @@ public class Worker {
 		v.setWorkerState(state);
 		while ((state.superstep = barrier.enter(state.activeVertexes)) >= 0) {
 			if (state.superstep == 0) {
-				System.out.println("Data: " + vertexes);
+				logger.info("Data: " + vertexes);
 			}
-			System.out.println("Running superstep " + state.superstep);
+			logger.info("Running superstep " + state.superstep);
 			computeVertexes(v);
 			messageRouter.flush();
 			state.activeVertexes = nextSuperstep();

@@ -2,6 +2,8 @@ package nl.vu.cs.amstel;
 
 import java.io.IOException;
 
+import org.apache.log4j.Logger;
+
 import ibis.ipl.ReadMessage;
 import ibis.ipl.ReceivePort;
 import ibis.ipl.SendPort;
@@ -9,6 +11,8 @@ import ibis.ipl.WriteMessage;
 
 public class MasterBarrier {
 
+	private Logger logger = Logger.getLogger("nl.vu.cs.amstel");
+	
 	public static final int BARRIER_ENTER = 1;
 	public static final int BARRIER_RELEASE = 2;
 	
@@ -32,8 +36,8 @@ public class MasterBarrier {
 			ReadMessage r = receiver.receive();
 			int code = r.readInt();
 			if (code != BARRIER_ENTER) {
-				System.err.println("Incorrect barrier enter code. "
-						+ "Expecting " + BARRIER_ENTER + ", got " + code);
+				logger.fatal("Incorrect barrier enter code. "
+					+ "Expecting " + BARRIER_ENTER + ", got " + code);
 			}
 			activeVertexes += r.readInt();
 			r.finish();

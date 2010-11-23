@@ -3,6 +3,8 @@ package nl.vu.cs.amstel.msg;
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 import nl.vu.cs.amstel.VertexState;
 import nl.vu.cs.amstel.user.MessageValue;
 
@@ -14,6 +16,8 @@ import ibis.ipl.WriteMessage;
 
 public class MessageReceiver extends Thread {
 
+	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
+	
 	public static final int INPUT_MSG = 0x100;
 	public static final int COMPUTE_MSG = 0x200;
 	public static final int FLUSH_MSG = 0x300;
@@ -33,7 +37,7 @@ public class MessageReceiver extends Thread {
 	private void inputMessage(ReadMessage msg) throws IOException {
 		VertexState vertex = VertexState.deserialize(msg);
 		vertexes.put(vertex.getID(), vertex);		
-		System.out.println("Received input vertex " + vertex.getID());
+		logger.info("Received input vertex " + vertex.getID());
 	}
 	
 	private void computeMessage(ReadMessage r) throws IOException {
@@ -71,7 +75,7 @@ public class MessageReceiver extends Thread {
 				case FLUSH_ACK_MSG: 
 					router.deactivateWorker(r.origin().ibisIdentifier()); 
 					break;
-				default: System.err.println("Unknown message type");
+				default: logger.error("Unknown message type");
 				}
 				r.finish();
 			} catch (ConnectionClosedException e) {
