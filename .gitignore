@@ -1,0 +1,8 @@
+# emacs generated files
+*~
+# Eclipse project-related files
+.classpath
+.project
+.settings/
+bin/
+lib/
