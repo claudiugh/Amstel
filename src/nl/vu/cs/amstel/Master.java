@@ -87,7 +87,20 @@ public class Master {
 		return partitions;
 	}
 	
+	private static String formatTime(long millis) {
+		long seconds = millis / 1000;
+		if (seconds < 60) {
+			return seconds + "s";
+		} else {
+			long minutes = seconds / 60;
+			seconds = seconds % 60;
+			return minutes + "m " + seconds + "s";
+		}
+	}
+	
 	public Master(Ibis ibis, int workersNo) throws Exception {
+		// record start time
+		long startTime = System.currentTimeMillis();
 		// setup
 		this.ibis = ibis;
 		workers = new IbisIdentifier[workersNo];
@@ -103,6 +116,10 @@ public class Master {
 		receiver.close();
 		sender.close();
 		ibis.end();
+		
+		// compute running time
+		long runningTime = System.currentTimeMillis() - startTime;
+		logger.info("Running time: " + formatTime(runningTime));
 	}
 	
 }

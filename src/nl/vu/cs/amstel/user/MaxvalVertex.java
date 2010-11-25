@@ -5,8 +5,7 @@ import java.util.List;
 public class MaxvalVertex extends Vertex {
 
 	public void compute(List<MessageValue> messages) {
-		System.out.println("Running compute for " + this);
-		System.out.println("Messages: " + messages);
+		System.out.println("Running compute for " + this + " " + messages);
 		if (getSuperstep() == 0) {
 			sendToAll(new MessageValue(getValue()));
 			return;

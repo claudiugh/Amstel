@@ -58,7 +58,6 @@ public abstract class Vertex {
 	
 	public void sendToAll(MessageValue m) {
 		for (String v : getOutEdges()) {
-			logger.info("Sending " + m + " to " + v);
 			send(v, m);
 		}
 	}
