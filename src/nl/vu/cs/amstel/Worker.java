@@ -25,6 +25,7 @@ public class Worker {
 
 	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	
+	private Class<? extends Vertex> vertexClass;
 	private Ibis ibis;
 	private IbisIdentifier master;
 	private SendPort masterSender;
@@ -65,7 +66,7 @@ public class Worker {
 			GraphInput.readVertexes(inputPartition);
 		for (String vertex : inputVertexes.keySet()) {
 			VertexState state = new VertexState(vertex, 
-				inputVertexes.get(vertex), 10);
+				inputVertexes.get(vertex), GraphInput.readValue(vertex));
 			messageRouter.send(state);
 		}
 	}
@@ -90,6 +91,14 @@ public class Worker {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}		
+	}
+	
+	private void printAllVertexes(Vertex v) {
+		for (String vertex : vertexes.keySet()) {
+			VertexState state = vertexes.get(vertex);
+			v.setState(state);
+			logger.info(v);
+		}
 	}
 	
 	private void computeVertexes(Vertex v) throws IOException {
@@ -120,9 +129,17 @@ public class Worker {
 		readInput();
 		messageRouter.flush();
 		barrier.enter(1);
-		// hack: lets time to deliver the messages
+		
 		state.activeVertexes = vertexes.size();
-		Vertex v = new Vertex();
+		// instantiate the vertex handler 
+		Vertex v = null;
+		try {
+			v = vertexClass.newInstance();
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		}
 		v.setWorkerState(state);
 		while ((state.superstep = barrier.enter(state.activeVertexes)) >= 0) {
 			if (state.superstep == 0) {
@@ -134,14 +151,18 @@ public class Worker {
 			state.activeVertexes = nextSuperstep();
 		}
 		
+		printAllVertexes(v);
 		// close connections
 		closeWorkerConnections();
 	}
 	
-	public Worker(Ibis ibis, IbisIdentifier master) throws IOException, InterruptedException {
+	public Worker(Ibis ibis, IbisIdentifier master, 
+			Class<? extends Vertex> vertexClass)
+		throws IOException, InterruptedException {
 		// setup
 		this.ibis = ibis;
 		this.master = master;
+		this.vertexClass = vertexClass;
 		masterSender = ibis.createSendPort(Node.W2M_PORT);
 		masterSender.connect(master, "w2m");
 		masterReceiver = ibis.createReceivePort(Node.M2W_PORT, "m2w");

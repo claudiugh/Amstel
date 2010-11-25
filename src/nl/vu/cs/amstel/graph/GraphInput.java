@@ -3,9 +3,13 @@ package nl.vu.cs.amstel.graph;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 public class GraphInput {
-	public static int VERTEXES = 10;
+	
+	public static Random rand = new Random();
+	
+	public static int VERTEXES = 20;
 	public static int EDGES = 3;
 	public static String[] vertexes;
 	
@@ -47,4 +51,7 @@ public class GraphInput {
 		return data;
 	}
 	
+	public static int readValue(String vertex) {
+		return rand.nextInt(VERTEXES);
+	}
 }

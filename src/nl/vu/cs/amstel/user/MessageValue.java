@@ -22,4 +22,8 @@ public class MessageValue {
 	public void deserialize(ReadMessage r) throws IOException {
 		this.value = r.readInt();
 	}
+	
+	public String toString() {
+		return "" + value;
+	}
 }

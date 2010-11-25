@@ -3,11 +3,15 @@ package nl.vu.cs.amstel.user;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.log4j.Logger;
+
 import nl.vu.cs.amstel.VertexState;
 import nl.vu.cs.amstel.WorkerState;
 
-public class Vertex {
+public abstract class Vertex {
 
+	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
+	
 	private VertexState state;
 	private WorkerState workerState;
 	
@@ -43,33 +47,26 @@ public class Vertex {
 		return state.getOutEdges();
 	}
 	
-	public void send(String toVertex, MessageValue m) throws IOException {
-		workerState.router.send(toVertex, m);
+	public void send(String toVertex, MessageValue m) {
+		try {
+			workerState.router.send(toVertex, m);
+		} catch (IOException e) {
+			logger.error("Error sending message " + m + " to " + toVertex);
+			e.printStackTrace();
+		}
 	}
 	
-	private void sendToAll(MessageValue m) throws IOException {
+	public void sendToAll(MessageValue m) {
 		for (String v : getOutEdges()) {
+			logger.info("Sending " + m + " to " + v);
 			send(v, m);
 		}
 	}
 	
-	public void compute(List<MessageValue> messages) throws IOException {
-		System.out.println("Running compute for " + getID());
-		if (getSuperstep() == 0) {
-			sendToAll(new MessageValue(getValue()));
-			return;
-		}
-		int max = getValue();
-		for (MessageValue m : messages) {
-			if (m.value > max) {
-				max = m.value;
-			}
-		}
-		if (max != getValue()) {
-			setValue(max);
-			sendToAll(new MessageValue(getValue()));
-		} else {
-			voteToHalt();
-		}
+	abstract public void compute(List<MessageValue> messages);
+	
+	public String toString() {
+		return getID() + "(" + getValue() + ")";
 	}
+	
 }
