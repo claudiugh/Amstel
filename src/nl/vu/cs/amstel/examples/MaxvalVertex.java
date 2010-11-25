@@ -1,6 +1,9 @@
-package nl.vu.cs.amstel.user;
+package nl.vu.cs.amstel.examples;
 
 import java.util.List;
+
+import nl.vu.cs.amstel.user.MessageValue;
+import nl.vu.cs.amstel.user.Vertex;
 
 public class MaxvalVertex extends Vertex {
 

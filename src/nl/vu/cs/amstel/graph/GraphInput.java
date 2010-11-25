@@ -13,11 +13,9 @@ public class GraphInput {
 	public static int EDGES = 3;
 	public static String[] vertexes;
 	
-	static {
-		init();
-	}
-	
-	public static void init() {
+	public static void init(int vertexesNo, int edges) {
+		VERTEXES = vertexesNo;
+		EDGES = edges;
 		vertexes = new String[VERTEXES];
 		for (int i = 0; i < VERTEXES; i++) {
 			vertexes[i] = "V" + i;

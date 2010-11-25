@@ -1,8 +1,6 @@
 package nl.vu.cs.amstel;
 
-import java.io.IOException;
-
-import nl.vu.cs.amstel.user.MaxvalVertex;
+import nl.vu.cs.amstel.user.Vertex;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -31,16 +29,8 @@ public class Node {
     
     IbisCapabilities ibisCapabilities = new IbisCapabilities(
             IbisCapabilities.ELECTIONS_STRICT);	
-	
-    private void runMaxval(Ibis ibis, IbisIdentifier master) throws Exception {
-    	if (master.equals(ibis.identifier())) {
-    		new Master(ibis, 3);
-	    } else {
-	    	new Worker(ibis, master, MaxvalVertex.class);
-	    }
-    }
-    
-	private void run() throws Exception {
+	    
+	public void run(int nodes, Class<? extends Vertex> vertexClass) throws Exception {
 		Ibis ibis = IbisFactory.createIbis(ibisCapabilities, null, 
 				W2M_PORT, M2W_PORT, W2W_PORT);		 
 	    // Elect a server
@@ -48,15 +38,13 @@ public class Node {
 		Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 		logger.setLevel(Level.ALL);
 	    
-		runMaxval(ibis, master);
+    	if (master.equals(ibis.identifier())) {
+    		// the number of workers is the total number of nodes excluding the
+    		// the master node
+    		new Master(ibis, nodes - 1);
+	    } else {
+	    	new Worker(ibis, master, vertexClass);
+	    }
 	}
 	
-	public static void main(String args[]) {
-
-		try {
-			new Node().run();
-		} catch (Exception e) {
-			e.printStackTrace(System.err);
-		}
-	}
 }
