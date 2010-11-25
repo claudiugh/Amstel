@@ -106,7 +106,6 @@ public class Worker {
 			VertexState state = vertexes.get(vertex);
 			if (state.isActive()) {
 				v.setState(state);
-				state.nextSuperstep();
 				v.compute(state.getInbox());
 			}
 		}
