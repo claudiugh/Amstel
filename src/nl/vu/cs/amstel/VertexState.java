@@ -12,14 +12,14 @@ import nl.vu.cs.amstel.user.MessageValue;
 public class VertexState {
 
 	private String vid;
-	private ArrayList<String> edges;
+	private String[] edges;
 	private int value;
 	private boolean active = true;
 	private boolean hasMessages = false;
 	private List<MessageValue> inbox = new ArrayList<MessageValue>();
 	private List<MessageValue> futureInbox = new ArrayList<MessageValue>();
 	
-	public VertexState(String vid, ArrayList<String> edges, int value) {
+	public VertexState(String vid, String[] edges, int value) {
 		this.vid = vid;
 		this.edges = edges;
 		this.value = value;
@@ -54,7 +54,7 @@ public class VertexState {
 	public void serialize(WriteMessage msg) throws IOException {
 		msg.writeString(vid);
 		msg.writeInt(value);
-		msg.writeInt(edges.size());
+		msg.writeInt(edges.length);
 		for (String e : edges) {
 			msg.writeString(e);
 		}
@@ -64,9 +64,9 @@ public class VertexState {
 		String vid = msg.readString();
 		int value = msg.readInt();
 		int edgesNo = msg.readInt();
-		ArrayList<String> edges = new ArrayList<String>();
+		String[] edges = new String[edgesNo];
 		for (int i = 0; i < edgesNo; i++) {
-			edges.add(msg.readString());
+			edges[i] = msg.readString();
 		}
 		return new VertexState(vid, edges, value);
 	}
@@ -83,7 +83,7 @@ public class VertexState {
 		this.value = value;
 	}
 	
-	public List<String> getOutEdges() {
+	public String[] getOutEdges() {
 		return edges;
 	}
 	

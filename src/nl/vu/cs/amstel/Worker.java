@@ -62,7 +62,7 @@ public class Worker {
 	}
 	
 	private void readInput() throws IOException {
-		Map<String, ArrayList<String>> inputVertexes = 
+		Map<String, String[]> inputVertexes = 
 			GraphInput.readVertexes(inputPartition);
 		for (String vertex : inputVertexes.keySet()) {
 			VertexState state = new VertexState(vertex, 
@@ -150,7 +150,6 @@ public class Worker {
 			state.activeVertexes = nextSuperstep();
 		}
 		
-		printAllVertexes(v);
 		// close connections
 		closeWorkerConnections();
 	}

@@ -43,7 +43,7 @@ public abstract class Vertex {
 		state.setActive(false);
 	}
 	
-	public List<String> getOutEdges() {
+	public String[] getOutEdges() {
 		return state.getOutEdges();
 	}
 	

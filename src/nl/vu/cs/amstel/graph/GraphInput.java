@@ -27,10 +27,10 @@ public class GraphInput {
 	 * @param partition
 	 * @return
 	 */
-	public static Map<String, ArrayList<String>> readVertexes(
+	public static Map<String, String[]> readVertexes(
 			InputPartition partition) {
-		HashMap<String,ArrayList<String>> data = 
-			new HashMap<String, ArrayList<String>>();
+		HashMap<String, String[]> data = 
+			new HashMap<String, String[]>();
 		int vId = 0;
 		for (int i = 0; i < vertexes.length; i++) {
 			if (vertexes[i].equals(partition.from)) {
@@ -39,10 +39,10 @@ public class GraphInput {
 			}
 		}
 		for (int u = vId; u < vId + partition.count; u++) {
-			ArrayList<String> edges = new ArrayList<String>();
-			for (int j = u + 1; j < u + EDGES + 1; j++) {
-				int v = j % VERTEXES;
-				edges.add(vertexes[v]);
+			String[] edges = new String[EDGES];
+			for (int j = 0; j < EDGES; j++) {
+				int v = (j + u + 1) % VERTEXES;
+				edges[j] = vertexes[v];
 			}
 			data.put(vertexes[u], edges);
 		}
