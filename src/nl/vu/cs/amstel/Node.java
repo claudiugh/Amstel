@@ -3,9 +3,6 @@ package nl.vu.cs.amstel;
 import nl.vu.cs.amstel.user.MessageValue;
 import nl.vu.cs.amstel.user.Vertex;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-
 import ibis.ipl.Ibis;
 import ibis.ipl.IbisCapabilities;
 import ibis.ipl.IbisFactory;
@@ -37,8 +34,6 @@ public class Node<M extends MessageValue> {
 				W2M_PORT, M2W_PORT, W2W_PORT);		 
 	    // Elect a server
 	    IbisIdentifier master = ibis.registry().elect("Master");
-		Logger logger = Logger.getLogger("nl.vu.cs.amstel");
-		logger.setLevel(Level.ALL);
 	    
     	if (master.equals(ibis.identifier())) {
     		// the number of workers is the total number of nodes excluding the

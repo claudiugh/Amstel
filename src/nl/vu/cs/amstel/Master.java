@@ -17,7 +17,7 @@ import ibis.ipl.WriteMessage;
 
 public class Master {
 
-	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
+	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel.master");
 	
 	private Ibis ibis;
 	private ReceivePort receiver;
@@ -99,6 +99,9 @@ public class Master {
 	}
 	
 	public Master(Ibis ibis, int workersNo) throws Exception {
+		logger.info("Running for " + GraphInput.VERTEXES + " vertexes"
+			+ " and " + GraphInput.EDGES + " edges");
+		
 		// record start time
 		long startTime = System.currentTimeMillis();
 		// setup

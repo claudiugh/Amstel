@@ -8,7 +8,6 @@ import nl.vu.cs.amstel.user.Vertex;
 public class MaxvalVertex extends Vertex<IntMessage> {
 
 	public void compute(List<IntMessage> messages) {
-		System.out.println("Running compute for " + this + " " + messages);
 		if (getSuperstep() == 0) {
 			sendToAll(new IntMessage(getValue()));
 			return;
