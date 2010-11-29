@@ -1,6 +1,8 @@
 package nl.vu.cs.amstel.msg;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
@@ -24,8 +26,10 @@ public class MessageReceiver<M extends MessageValue> extends Thread {
 	public static final int FLUSH_ACK_MSG = 0x400;
 	
 	private Class<M> messageClass;
-	
 	private Map<String, VertexState<M>> vertexes;
+	
+	private List<VertexState<M>> inputVertexes = 
+		new ArrayList<VertexState<M>>();
 	private ReceivePort receiver;
 	private MessageRouter<M> router;
 	
@@ -41,7 +45,8 @@ public class MessageReceiver<M extends MessageValue> extends Thread {
 	private void inputMessage(ReadMessage msg) throws IOException {
 		VertexState<M> vertex = new VertexState<M>();
 		vertex.deserialize(msg);
-		vertexes.put(vertex.getID(), vertex);		
+		// stack the vertex to the local list of received vertexes
+		inputVertexes.add(vertex);		
 		logger.info("Received input vertex " + vertex.getID());
 	}
 	
@@ -55,6 +60,7 @@ public class MessageReceiver<M extends MessageValue> extends Thread {
 				try {
 					msg = messageClass.newInstance();
 					msg.deserialize(r);
+					// TODO: this will not work
 					vertexes.get(vertex).deliver(msg);
 				} catch (InstantiationException e) {
 					e.printStackTrace();
@@ -72,6 +78,10 @@ public class MessageReceiver<M extends MessageValue> extends Thread {
 			w.writeInt(FLUSH_ACK_MSG);
 			w.finish();
 		}
+	}
+	
+	public List<VertexState<M>> getReceivedVertexes() {
+		return inputVertexes;
 	}
 	
 	public void run() {

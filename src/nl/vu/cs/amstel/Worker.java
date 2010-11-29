@@ -1,7 +1,6 @@
 package nl.vu.cs.amstel;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -36,7 +35,7 @@ public class Worker<M extends MessageValue> {
 	private IbisIdentifier[] partitions;
 	private InputPartition inputPartition;
 	private Map<String, VertexState<M>> vertexes = 
-		Collections.synchronizedMap(new HashMap<String, VertexState<M>>()); 
+		new HashMap<String, VertexState<M>>(); 
 	
 	// messaging entities
 	private MessageReceiver<M> messageReceiver;
@@ -69,6 +68,12 @@ public class Worker<M extends MessageValue> {
 			VertexState<M> state = new VertexState<M>(vertex, 
 				inputVertexes.get(vertex), GraphInput.readValue(vertex));
 			messageRouter.send(state);
+		}
+	}
+	
+	private void loadReceivedInput() {
+		for (VertexState<M> vertex : messageReceiver.getReceivedVertexes()) {
+			vertexes.put(vertex.getID(), vertex);
 		}
 	}
 	
@@ -120,7 +125,10 @@ public class Worker<M extends MessageValue> {
 		// reading input and distribute vertexes
 		readInput();
 		messageRouter.flush();
+		// we synchronize here because we need to be sure that 
+		// all the input messages have been received
 		barrier.enter(1);
+		loadReceivedInput();
 		
 		state.activeVertexes = vertexes.size();
 		// instantiate the vertex handler 
@@ -128,6 +136,7 @@ public class Worker<M extends MessageValue> {
 		try {
 			v = vertexClass.newInstance();
 			v.setWorkerState(state);
+			// the computation iteration
 			while ((state.superstep = barrier.enter(state.activeVertexes)) >= 0) {
 				if (state.superstep == 0) {
 					logger.info("Data: " + vertexes);

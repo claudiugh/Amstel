@@ -134,6 +134,11 @@ public class MessageRouter<M extends MessageValue> {
 		}
 	}
 	
+	/**
+	 * sends all the buffered messages and will block until the acknowledgments
+	 * for the flush messages are received
+	 * @throws IOException
+	 */
 	public void flush() throws IOException {
 		for (IbisIdentifier worker : senders.keySet()) {
 			OutgoingQueue<M> buffer = buffers.get(worker);
