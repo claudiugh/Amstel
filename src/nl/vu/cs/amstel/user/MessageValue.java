@@ -5,25 +5,10 @@ import java.io.IOException;
 import ibis.ipl.ReadMessage;
 import ibis.ipl.WriteMessage;
 
-public class MessageValue {
-	public int value;
+public interface MessageValue {
+
+	public void serialize(WriteMessage w) throws IOException;
 	
-	public MessageValue() {
-	}
+	public void deserialize(ReadMessage r) throws IOException;
 	
-	public MessageValue(int value) {
-		this.value = value;
-	}
-	
-	public void serialize(WriteMessage w) throws IOException {
-		w.writeInt(value);
-	}
-	
-	public void deserialize(ReadMessage r) throws IOException {
-		this.value = r.readInt();
-	}
-	
-	public String toString() {
-		return "" + value;
-	}
 }

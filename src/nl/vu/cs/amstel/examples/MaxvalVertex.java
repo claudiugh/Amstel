@@ -2,26 +2,26 @@ package nl.vu.cs.amstel.examples;
 
 import java.util.List;
 
-import nl.vu.cs.amstel.user.MessageValue;
+import nl.vu.cs.amstel.user.IntMessage;
 import nl.vu.cs.amstel.user.Vertex;
 
-public class MaxvalVertex extends Vertex {
+public class MaxvalVertex extends Vertex<IntMessage> {
 
-	public void compute(List<MessageValue> messages) {
+	public void compute(List<IntMessage> messages) {
 		System.out.println("Running compute for " + this + " " + messages);
 		if (getSuperstep() == 0) {
-			sendToAll(new MessageValue(getValue()));
+			sendToAll(new IntMessage(getValue()));
 			return;
 		}
 		int max = getValue();
-		for (MessageValue m : messages) {
+		for (IntMessage m : messages) {
 			if (m.value > max) {
 				max = m.value;
 			}
 		}
 		if (max != getValue()) {
 			setValue(max);
-			sendToAll(new MessageValue(getValue()));
+			sendToAll(new IntMessage(getValue()));
 		} else {
 			voteToHalt();
 		}

@@ -1,7 +1,6 @@
 package nl.vu.cs.amstel;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,6 +11,7 @@ import nl.vu.cs.amstel.graph.GraphInput;
 import nl.vu.cs.amstel.graph.InputPartition;
 import nl.vu.cs.amstel.msg.MessageReceiver;
 import nl.vu.cs.amstel.msg.MessageRouter;
+import nl.vu.cs.amstel.user.MessageValue;
 import nl.vu.cs.amstel.user.Vertex;
 
 import ibis.ipl.Ibis;
@@ -21,11 +21,12 @@ import ibis.ipl.ReceivePort;
 import ibis.ipl.SendPort;
 import ibis.ipl.WriteMessage;
 
-public class Worker {
+public class Worker<M extends MessageValue> {
 
 	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	
-	private Class<? extends Vertex> vertexClass;
+	private Class<? extends Vertex<M>> vertexClass;
+	private Class<M> messageClass;
 	private Ibis ibis;
 	private IbisIdentifier master;
 	private SendPort masterSender;
@@ -34,16 +35,16 @@ public class Worker {
 	private WorkerBarrier barrier;
 	private IbisIdentifier[] partitions;
 	private InputPartition inputPartition;
-	private Map<String, VertexState> vertexes = 
-		Collections.synchronizedMap(new HashMap<String, VertexState>()); 
+	private Map<String, VertexState<M>> vertexes = 
+		Collections.synchronizedMap(new HashMap<String, VertexState<M>>()); 
 	
 	// messaging entities
-	private MessageReceiver messageReceiver;
-	private MessageRouter messageRouter;
+	private MessageReceiver<M> messageReceiver;
+	private MessageRouter<M> messageRouter;
 	
 	// state of the computation
-	private WorkerState state;
-	
+	private WorkerState<M> state;
+		
 	@SuppressWarnings("unchecked")
 	private void register() throws IOException {
 		WriteMessage w = masterSender.newMessage();
@@ -65,7 +66,7 @@ public class Worker {
 		Map<String, String[]> inputVertexes = 
 			GraphInput.readVertexes(inputPartition);
 		for (String vertex : inputVertexes.keySet()) {
-			VertexState state = new VertexState(vertex, 
+			VertexState<M> state = new VertexState<M>(vertex, 
 				inputVertexes.get(vertex), GraphInput.readValue(vertex));
 			messageRouter.send(state);
 		}
@@ -75,11 +76,11 @@ public class Worker {
 		receiver = ibis.createReceivePort(Node.W2W_PORT, "worker");
 		receiver.enableConnections();
 		// this is a thread that only listens for incoming messages
-		messageRouter = new MessageRouter(ibis, partitions, vertexes);
-		messageReceiver = new MessageReceiver(receiver, messageRouter, 
-			vertexes);
+		messageRouter = new MessageRouter<M>(ibis, partitions, vertexes);
+		messageReceiver = new MessageReceiver<M>(receiver, messageRouter, 
+			messageClass, vertexes);
 		messageReceiver.start();
-		state = new WorkerState(messageRouter);
+		state = new WorkerState<M>(messageRouter);
 	}
 	
 	private void closeWorkerConnections() throws IOException {
@@ -93,17 +94,9 @@ public class Worker {
 		}		
 	}
 	
-	private void printAllVertexes(Vertex v) {
+	private void computeVertexes(Vertex<M> v) throws IOException {
 		for (String vertex : vertexes.keySet()) {
-			VertexState state = vertexes.get(vertex);
-			v.setState(state);
-			logger.info(v);
-		}
-	}
-	
-	private void computeVertexes(Vertex v) throws IOException {
-		for (String vertex : vertexes.keySet()) {
-			VertexState state = vertexes.get(vertex);
+			VertexState<M> state = vertexes.get(vertex);
 			if (state.isActive()) {
 				v.setState(state);
 				v.compute(state.getInbox());
@@ -131,23 +124,23 @@ public class Worker {
 		
 		state.activeVertexes = vertexes.size();
 		// instantiate the vertex handler 
-		Vertex v = null;
+		Vertex<M> v;
 		try {
 			v = vertexClass.newInstance();
+			v.setWorkerState(state);
+			while ((state.superstep = barrier.enter(state.activeVertexes)) >= 0) {
+				if (state.superstep == 0) {
+					logger.info("Data: " + vertexes);
+				}
+				logger.info("Running superstep " + state.superstep);
+				computeVertexes(v);
+				messageRouter.flush();
+				state.activeVertexes = nextSuperstep();
+			}
 		} catch (InstantiationException e) {
 			e.printStackTrace();
 		} catch (IllegalAccessException e) {
 			e.printStackTrace();
-		}
-		v.setWorkerState(state);
-		while ((state.superstep = barrier.enter(state.activeVertexes)) >= 0) {
-			if (state.superstep == 0) {
-				logger.info("Data: " + vertexes);
-			}
-			logger.info("Running superstep " + state.superstep);
-			computeVertexes(v);
-			messageRouter.flush();
-			state.activeVertexes = nextSuperstep();
 		}
 		
 		// close connections
@@ -155,12 +148,14 @@ public class Worker {
 	}
 	
 	public Worker(Ibis ibis, IbisIdentifier master, 
-			Class<? extends Vertex> vertexClass)
+			Class<? extends Vertex<M>> vertexClass,
+			Class<M> messageClass)
 		throws IOException, InterruptedException {
 		// setup
 		this.ibis = ibis;
 		this.master = master;
 		this.vertexClass = vertexClass;
+		this.messageClass = messageClass;
 		masterSender = ibis.createSendPort(Node.W2M_PORT);
 		masterSender.connect(master, "w2m");
 		masterReceiver = ibis.createReceivePort(Node.M2W_PORT, "m2w");

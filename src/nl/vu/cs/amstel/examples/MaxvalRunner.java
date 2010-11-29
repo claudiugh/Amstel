@@ -2,6 +2,7 @@ package nl.vu.cs.amstel.examples;
 
 import nl.vu.cs.amstel.Node;
 import nl.vu.cs.amstel.graph.GraphInput;
+import nl.vu.cs.amstel.user.IntMessage;
 
 public class MaxvalRunner {
 	
@@ -27,7 +28,7 @@ public class MaxvalRunner {
 		}
 		
 		try {
-			new Node().run(nodes, MaxvalVertex.class);
+			new Node<IntMessage>().run(nodes, MaxvalVertex.class, IntMessage.class);
 		} catch (Exception e) {
 			e.printStackTrace(System.err);
 		}

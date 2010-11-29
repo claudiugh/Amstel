@@ -8,18 +8,18 @@ import org.apache.log4j.Logger;
 import nl.vu.cs.amstel.VertexState;
 import nl.vu.cs.amstel.WorkerState;
 
-public abstract class Vertex {
+public abstract class Vertex<M extends MessageValue> {
 
 	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	
-	private VertexState state;
-	private WorkerState workerState;
+	private VertexState<M> state;
+	private WorkerState<M> workerState;
 	
-	public void setState(VertexState state) {
+	public void setState(VertexState<M> state) {
 		this.state = state;
 	}
 	
-	public void setWorkerState(WorkerState workerState) {
+	public void setWorkerState(WorkerState<M> workerState) {
 		this.workerState = workerState;
 	}
 	
@@ -47,7 +47,7 @@ public abstract class Vertex {
 		return state.getOutEdges();
 	}
 	
-	public void send(String toVertex, MessageValue m) {
+	public void send(String toVertex, M m) {
 		try {
 			workerState.router.send(toVertex, m);
 		} catch (IOException e) {
@@ -56,13 +56,13 @@ public abstract class Vertex {
 		}
 	}
 	
-	public void sendToAll(MessageValue m) {
+	public void sendToAll(M m) {
 		for (String v : getOutEdges()) {
 			send(v, m);
 		}
 	}
 	
-	abstract public void compute(List<MessageValue> messages);
+	abstract public void compute(List<M> messages);
 	
 	public String toString() {
 		return getID() + "(" + getValue() + ")";

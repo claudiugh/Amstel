@@ -18,20 +18,20 @@ import ibis.ipl.IbisIdentifier;
 import ibis.ipl.SendPort;
 import ibis.ipl.WriteMessage;
 
-public class MessageRouter {
+public class MessageRouter<M extends MessageValue> {
 
 	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	
 	private Ibis ibis;
 	private IbisIdentifier[] partitions;
-	private Map<String, VertexState> vertexes;
+	private Map<String, VertexState<M>> vertexes;
 	
 	// the send ports for each other worker
 	private Map<IbisIdentifier, SendPort> senders = 
 		new HashMap<IbisIdentifier, SendPort>();
 	// the send buffers for each worker
-	private Map<IbisIdentifier, OutgoingQueue> buffers =
-		new HashMap<IbisIdentifier, OutgoingQueue>();
+	private Map<IbisIdentifier, OutgoingQueue<M>> buffers =
+		new HashMap<IbisIdentifier, OutgoingQueue<M>>();
 	// active worker channels
 	private Set<IbisIdentifier> activeWorkers =
 		Collections.synchronizedSet(new HashSet<IbisIdentifier>());
@@ -41,7 +41,7 @@ public class MessageRouter {
 	}
 	
 	public MessageRouter(Ibis ibis, IbisIdentifier[] partitions, 
-			Map<String, VertexState> vertexes) {
+			Map<String, VertexState<M>> vertexes) {
 		this.ibis = ibis;
 		this.partitions = partitions;
 		this.vertexes = vertexes;
@@ -76,12 +76,12 @@ public class MessageRouter {
 			SendPort sender = ibis.createSendPort(Node.W2W_PORT);
 			sender.connect(worker, "worker");
 			senders.put(worker, sender);
-			buffers.put(worker, new OutgoingQueue());
+			buffers.put(worker, new OutgoingQueue<M>());
 		}
 		return senders.get(worker);
 	}
 	
-	public void send(VertexState vertex) throws IOException {
+	public void send(VertexState<M> vertex) throws IOException {
 		IbisIdentifier owner = getOwner(vertex.getID());
 		if (owner.equals(ibis.identifier())) {
 			// just add to the local collection
@@ -99,7 +99,7 @@ public class MessageRouter {
 		}
 	}
 	
-	private void sendBuffer(IbisIdentifier worker, OutgoingQueue buffer) throws IOException {
+	private void sendBuffer(IbisIdentifier worker, OutgoingQueue<M> buffer) throws IOException {
 		SendPort sender = getSender(worker);
 		synchronized(sender) {
 			WriteMessage w = sender.newMessage();
@@ -110,14 +110,14 @@ public class MessageRouter {
 		activateWorker(worker);
 	}
 	
-	public void send(String toVertex, MessageValue msg) throws IOException {
+	public void send(String toVertex, M msg) throws IOException {
 		IbisIdentifier owner = getOwner(toVertex);
 		if (owner.equals(ibis.identifier())) {
 			// deliver locally
 			vertexes.get(toVertex).deliver(msg);
 		} else {
 			// enqueue for sending
-			OutgoingQueue buffer = buffers.get(owner);
+			OutgoingQueue<M> buffer = buffers.get(owner);
 			buffer.add(toVertex, msg);
 			if (buffer.reachedThreshold()) {
 				sendBuffer(owner, buffer);
@@ -136,7 +136,7 @@ public class MessageRouter {
 	
 	public void flush() throws IOException {
 		for (IbisIdentifier worker : senders.keySet()) {
-			OutgoingQueue buffer = buffers.get(worker);
+			OutgoingQueue<M> buffer = buffers.get(worker);
 			if (buffer.getCount() > 0) {
 				sendBuffer(worker, buffer);
 			}

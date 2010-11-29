@@ -1,14 +1,15 @@
 package nl.vu.cs.amstel;
 
 import nl.vu.cs.amstel.msg.MessageRouter;
+import nl.vu.cs.amstel.user.MessageValue;
 
-public class WorkerState {
+public class WorkerState<M extends MessageValue> {
 	
 	public int superstep;
 	public int activeVertexes;
-	public MessageRouter router;
+	public MessageRouter<M> router;
 	
-	public WorkerState(MessageRouter router) {
+	public WorkerState(MessageRouter<M> router) {
 		this.router = router;
 	}
 }

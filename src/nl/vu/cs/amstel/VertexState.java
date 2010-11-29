@@ -9,15 +9,18 @@ import java.util.List;
 
 import nl.vu.cs.amstel.user.MessageValue;
 
-public class VertexState {
+public class VertexState<M extends MessageValue> {
 
 	private String vid;
 	private String[] edges;
 	private int value;
 	private boolean active = true;
 	private boolean hasMessages = false;
-	private List<MessageValue> inbox = new ArrayList<MessageValue>();
-	private List<MessageValue> futureInbox = new ArrayList<MessageValue>();
+	private List<M> inbox = new ArrayList<M>();
+	private List<M> futureInbox = new ArrayList<M>();
+	
+	public VertexState() {
+	}
 	
 	public VertexState(String vid, String[] edges, int value) {
 		this.vid = vid;
@@ -25,18 +28,18 @@ public class VertexState {
 		this.value = value;
 	}
 	
-	public List<MessageValue> getInbox() {
+	public List<M> getInbox() {
 		return inbox;
 	}
 	
-	public void deliver(MessageValue m) {
+	public void deliver(M m) {
 		hasMessages = true;
 		futureInbox.add(m);
 	}
 	
 	private void switchInboxes() {
 		inbox.clear();
-		List<MessageValue> tmp = inbox;
+		List<M> tmp = inbox;
 		inbox = futureInbox;
 		futureInbox = tmp;
 	}
@@ -60,15 +63,14 @@ public class VertexState {
 		}
 	}
 	
-	public static VertexState deserialize(ReadMessage msg) throws IOException {
-		String vid = msg.readString();
-		int value = msg.readInt();
+	public void deserialize(ReadMessage msg) throws IOException {
+		vid = msg.readString();
+		value = msg.readInt();
 		int edgesNo = msg.readInt();
-		String[] edges = new String[edgesNo];
+		edges = new String[edgesNo];
 		for (int i = 0; i < edgesNo; i++) {
 			edges[i] = msg.readString();
 		}
-		return new VertexState(vid, edges, value);
 	}
 
 	public String getID() {

@@ -14,7 +14,7 @@ import ibis.ipl.ReceivePort;
 import ibis.ipl.SendPort;
 import ibis.ipl.WriteMessage;
 
-public class MessageReceiver extends Thread {
+public class MessageReceiver<M extends MessageValue> extends Thread {
 
 	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	
@@ -23,19 +23,24 @@ public class MessageReceiver extends Thread {
 	public static final int FLUSH_MSG = 0x300;
 	public static final int FLUSH_ACK_MSG = 0x400;
 	
-	private Map<String, VertexState> vertexes;
-	private ReceivePort receiver;
-	private MessageRouter router;
+	private Class<M> messageClass;
 	
-	public MessageReceiver(ReceivePort receiver, MessageRouter router,
-			Map<String, VertexState> vertexes) {
+	private Map<String, VertexState<M>> vertexes;
+	private ReceivePort receiver;
+	private MessageRouter<M> router;
+	
+	public MessageReceiver(ReceivePort receiver, MessageRouter<M> router,
+			Class<M> messageClass,
+			Map<String, VertexState<M>> vertexes) {
 		this.receiver = receiver;
 		this.router = router;
+		this.messageClass = messageClass;
 		this.vertexes = vertexes;
 	}
 	
 	private void inputMessage(ReadMessage msg) throws IOException {
-		VertexState vertex = VertexState.deserialize(msg);
+		VertexState<M> vertex = new VertexState<M>();
+		vertex.deserialize(msg);
 		vertexes.put(vertex.getID(), vertex);		
 		logger.info("Received input vertex " + vertex.getID());
 	}
@@ -46,9 +51,16 @@ public class MessageReceiver extends Thread {
 			String vertex = r.readString();
 			int msgCount = r.readInt();
 			for (int j = 0; j < msgCount; j++) {
-				MessageValue msg = new MessageValue();
-				msg.deserialize(r);
-				vertexes.get(vertex).deliver(msg);
+				M msg;
+				try {
+					msg = messageClass.newInstance();
+					msg.deserialize(r);
+					vertexes.get(vertex).deliver(msg);
+				} catch (InstantiationException e) {
+					e.printStackTrace();
+				} catch (IllegalAccessException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}

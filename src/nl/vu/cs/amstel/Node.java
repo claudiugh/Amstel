@@ -1,5 +1,6 @@
 package nl.vu.cs.amstel;
 
+import nl.vu.cs.amstel.user.MessageValue;
 import nl.vu.cs.amstel.user.Vertex;
 
 import org.apache.log4j.Level;
@@ -11,7 +12,7 @@ import ibis.ipl.IbisFactory;
 import ibis.ipl.IbisIdentifier;
 import ibis.ipl.PortType;
 
-public class Node {
+public class Node<M extends MessageValue> {
 	
     public static PortType W2M_PORT = 
     	new PortType(PortType.COMMUNICATION_RELIABLE, 
@@ -30,7 +31,8 @@ public class Node {
     IbisCapabilities ibisCapabilities = new IbisCapabilities(
             IbisCapabilities.ELECTIONS_STRICT);	
 	    
-	public void run(int nodes, Class<? extends Vertex> vertexClass) throws Exception {
+	public void run(int nodes, Class<? extends Vertex<M>> vertexClass, 
+			Class<M> messageClass) throws Exception {
 		Ibis ibis = IbisFactory.createIbis(ibisCapabilities, null, 
 				W2M_PORT, M2W_PORT, W2W_PORT);		 
 	    // Elect a server
@@ -43,7 +45,7 @@ public class Node {
     		// the master node
     		new Master(ibis, nodes - 1);
 	    } else {
-	    	new Worker(ibis, master, vertexClass);
+	    	new Worker<M>(ibis, master, vertexClass, messageClass);
 	    }
 	}
 	

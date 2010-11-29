@@ -10,17 +10,17 @@ import java.util.Map;
 
 import nl.vu.cs.amstel.user.MessageValue;
 
-public class OutgoingQueue {
+public class OutgoingQueue<M extends MessageValue> {
 	
 	public static int LIMIT = 2;
 	
-	private Map<String, List<MessageValue>> queues =
-		new HashMap<String, List<MessageValue>>();
+	private Map<String, List<M>> queues =
+		new HashMap<String, List<M>>();
 	private int count = 0;
 	
-	private List<MessageValue> getQueue(String vertex) {
+	private List<M> getQueue(String vertex) {
 		if (!queues.containsKey(vertex)) {
-			queues.put(vertex, new ArrayList<MessageValue>());
+			queues.put(vertex, new ArrayList<M>());
 		}
 		return queues.get(vertex);
 	}
@@ -36,7 +36,7 @@ public class OutgoingQueue {
 		return count == LIMIT;
 	}
 	
-	public void add(String toVertex, MessageValue msg) {
+	public void add(String toVertex, M msg) {
 		count++;
 		getQueue(toVertex).add(msg);
 	}
@@ -45,9 +45,9 @@ public class OutgoingQueue {
 		w.writeInt(queues.keySet().size());
 		for (String vertex : queues.keySet()) {
 			w.writeString(vertex);
-			List<MessageValue> msgs = queues.get(vertex);
+			List<M> msgs = queues.get(vertex);
 			w.writeInt(msgs.size());
-			for (MessageValue msg : msgs) {
+			for (M msg : msgs) {
 				msg.serialize(w);
 			}
 			msgs.clear();
