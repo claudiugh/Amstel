@@ -119,6 +119,12 @@ public class Worker<M extends MessageValue> {
 		return activeVertexes;
 	}
 	
+	private void prepareInboxes() {
+		for (String vertex : vertexes.keySet()) {
+			vertexes.get(vertex).switchInboxes();
+		}
+	}
+	
 	private void run() throws IOException, InterruptedException {
 		register();
 		setupWorkerConnections();
@@ -138,10 +144,8 @@ public class Worker<M extends MessageValue> {
 			v.setWorkerState(state);
 			// the computation iteration
 			while ((state.superstep = barrier.enter(state.activeVertexes)) >= 0) {
-				if (state.superstep == 0) {
-					logger.info("Data: " + vertexes);
-				}
 				logger.info("Running superstep " + state.superstep);
+				prepareInboxes();
 				computeVertexes(v);
 				messageRouter.flush();
 				state.activeVertexes = nextSuperstep();

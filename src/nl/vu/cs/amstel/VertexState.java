@@ -7,10 +7,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.log4j.Logger;
+
 import nl.vu.cs.amstel.user.MessageValue;
 
 public class VertexState<M extends MessageValue> {
 
+	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
+	
 	private String vid;
 	private String[] edges;
 	private int value;
@@ -32,24 +36,24 @@ public class VertexState<M extends MessageValue> {
 		return inbox;
 	}
 	
-	public void deliver(M m) {
+	public synchronized void deliver(M m) {
 		hasMessages = true;
 		futureInbox.add(m);
 	}
 	
-	private void switchInboxes() {
+	public synchronized void switchInboxes() {
 		inbox.clear();
+		hasMessages = false;
+		// swap inbox with future inbox
 		List<M> tmp = inbox;
 		inbox = futureInbox;
 		futureInbox = tmp;
 	}
 	
 	public boolean nextSuperstep() {
-		switchInboxes();
 		if (hasMessages) {
 			active = true;
 		}
-		hasMessages = false;
 		// return active state
 		return active;
 	}
@@ -100,4 +104,5 @@ public class VertexState<M extends MessageValue> {
 	public String toString() {
 		return "[" + value + "]: " + edges; 
 	}
+		
 }
