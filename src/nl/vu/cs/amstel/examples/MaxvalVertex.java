@@ -13,6 +13,7 @@ public class MaxvalVertex extends Vertex<IntMessage> {
 			return;
 		}
 		int max = getValue();
+		//System.out.println(this + ": " + VertexState.msgStats(messages));
 		for (IntMessage m : messages) {
 			if (m.value > max) {
 				max = m.value;

@@ -7,14 +7,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
-
 import nl.vu.cs.amstel.user.MessageValue;
 
 public class VertexState<M extends MessageValue> {
 
-	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
-	
 	private String vid;
 	private String[] edges;
 	private int value;

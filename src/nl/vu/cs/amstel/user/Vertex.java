@@ -67,5 +67,5 @@ public abstract class Vertex<M extends MessageValue> {
 	public String toString() {
 		return getID() + "(" + getValue() + ")";
 	}
-	
+
 }

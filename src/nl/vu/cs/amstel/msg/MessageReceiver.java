@@ -63,8 +63,10 @@ public class MessageReceiver<M extends MessageValue> extends Thread {
 					// TODO: this will not work
 					vertexes.get(vertex).deliver(msg);
 				} catch (InstantiationException e) {
+					logger.fatal("Error instantiating a message" + e);
 					e.printStackTrace();
 				} catch (IllegalAccessException e) {
+					logger.fatal(e);
 					e.printStackTrace();
 				}
 			}
