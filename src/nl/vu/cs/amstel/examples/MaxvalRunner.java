@@ -14,7 +14,7 @@ public class MaxvalRunner {
 	 * @throws Exception 
 	 */
 	public static void main(String args[]) throws Exception {
-		int nodes, vertexes;
+		int nodes, vertexes, edges;
 		
 		if (args[0] != null) {
 			nodes = Integer.parseInt(args[0]);
@@ -24,7 +24,13 @@ public class MaxvalRunner {
 		
 		if (args[1] != null) {
 			vertexes = Integer.parseInt(args[1]);
-			GraphInput.init(vertexes, vertexes / 4);
+			
+			if (args[2] != null) {
+				edges = Integer.parseInt(args[2]);
+			} else {
+				edges = vertexes / 5;
+			}
+			GraphInput.init(vertexes, edges);
 		}
 		
 		try {
