@@ -37,7 +37,11 @@ public class MessageRouter<M extends MessageValue> {
 		Collections.synchronizedSet(new HashSet<IbisIdentifier>());
 	
 	private IbisIdentifier getOwner(String vid) {
-		return partitions[vid.hashCode() % partitions.length];
+		int hash = vid.hashCode();
+		if (hash < 0) {
+			hash = -hash;
+		}
+		return partitions[hash % partitions.length];
 	}
 	
 	public MessageRouter(Ibis ibis, IbisIdentifier[] partitions, 
