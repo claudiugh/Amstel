@@ -12,11 +12,12 @@ import nl.vu.cs.amstel.user.MessageValue;
 
 public class OutgoingQueue<M extends MessageValue> {
 	
-	public static int LIMIT = 2;
+	public static int QUEUE_SIZE = 64;
 	
 	private Map<String, List<M>> queues =
 		new HashMap<String, List<M>>();
 	private int count = 0;
+	private int nonemptyQueues = 0;
 	
 	private List<M> getQueue(String vertex) {
 		if (!queues.containsKey(vertex)) {
@@ -33,25 +34,32 @@ public class OutgoingQueue<M extends MessageValue> {
 	}
 	
 	public boolean reachedThreshold() {
-		return count == LIMIT;
+		return count == QUEUE_SIZE;
 	}
 	
 	public void add(String toVertex, M msg) {
+		List<M> queue = getQueue(toVertex);
+		if (queue.size() == 0) {
+			nonemptyQueues++;
+		}
 		count++;
 		getQueue(toVertex).add(msg);
 	}
 	
 	public void sendBulk(WriteMessage w) throws IOException {
-		w.writeInt(queues.keySet().size());
+		w.writeInt(nonemptyQueues);
 		for (String vertex : queues.keySet()) {
-			w.writeString(vertex);
 			List<M> msgs = queues.get(vertex);
-			w.writeInt(msgs.size());
-			for (M msg : msgs) {
-				msg.serialize(w);
+			if (msgs.size() > 0) {
+				w.writeString(vertex);
+				w.writeInt(msgs.size());
+				for (M msg : msgs) {
+					msg.serialize(w);
+				}
+				msgs.clear();
 			}
-			msgs.clear();
 		}
 		count = 0;
+		nonemptyQueues = 0;
 	}
 }
