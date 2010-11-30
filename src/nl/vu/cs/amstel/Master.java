@@ -61,12 +61,13 @@ public class Master {
 		int superstep = 0;
 		int activeVertexes = 1;
 		while (activeVertexes > 0) {
-			logger.info("Awaiting workers to enter in the barrier...");
 			activeVertexes = barrier.await();
 			if (activeVertexes == 0) {
 				// end of the algorithm
 				superstep = -1;
 			}
+			logger.info("Superstep " + superstep + ": "
+				+ activeVertexes + " vertexes left");
 			barrier.release(superstep);
 			superstep++;
 		}
