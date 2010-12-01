@@ -8,6 +8,7 @@ import org.apache.log4j.Logger;
 
 import nl.vu.cs.amstel.graph.GraphInput;
 import nl.vu.cs.amstel.graph.InputPartition;
+import nl.vu.cs.amstel.msg.MessageFactory;
 import nl.vu.cs.amstel.msg.MessageReceiver;
 import nl.vu.cs.amstel.msg.MessageRouter;
 import nl.vu.cs.amstel.user.MessageValue;
@@ -24,8 +25,10 @@ public class Worker<M extends MessageValue> {
 
 	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	
+	// for instantiation of user provided classes
 	private Class<? extends Vertex<M>> vertexClass;
-	private Class<M> messageClass;
+	private MessageFactory<M> messageFactory;
+
 	private Ibis ibis;
 	private IbisIdentifier master;
 	private SendPort masterSender;
@@ -83,7 +86,7 @@ public class Worker<M extends MessageValue> {
 		// this is a thread that only listens for incoming messages
 		messageRouter = new MessageRouter<M>(ibis, partitions, vertexes);
 		messageReceiver = new MessageReceiver<M>(receiver, messageRouter, 
-			messageClass, vertexes);
+			messageFactory, vertexes);
 		messageReceiver.start();
 		state = new WorkerState<M>(messageRouter);
 	}
@@ -168,7 +171,7 @@ public class Worker<M extends MessageValue> {
 		this.ibis = ibis;
 		this.master = master;
 		this.vertexClass = vertexClass;
-		this.messageClass = messageClass;
+		messageFactory = new MessageFactory<M>(messageClass);
 		masterSender = ibis.createSendPort(Node.W2M_PORT);
 		masterSender.connect(master, "w2m");
 		masterReceiver = ibis.createReceivePort(Node.M2W_PORT, "m2w");
