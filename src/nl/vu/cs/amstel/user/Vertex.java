@@ -1,19 +1,19 @@
 package nl.vu.cs.amstel.user;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.apache.log4j.Logger;
 
 import nl.vu.cs.amstel.VertexState;
 import nl.vu.cs.amstel.WorkerState;
+import nl.vu.cs.amstel.msg.MessageIterator;
 
 public abstract class Vertex<M extends MessageValue> {
 
 	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	
-	private VertexState<M> state;
-	private WorkerState<M> workerState;
+	private VertexState<M> state = null;
+	private WorkerState<M> workerState = null;
 	
 	public void setState(VertexState<M> state) {
 		this.state = state;
@@ -62,7 +62,7 @@ public abstract class Vertex<M extends MessageValue> {
 		}
 	}
 	
-	abstract public void compute(List<M> messages);
+	abstract public void compute(MessageIterator<M> messages);
 	
 	public String toString() {
 		return getID() + "(" + getValue() + ")";

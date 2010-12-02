@@ -3,63 +3,70 @@ package nl.vu.cs.amstel.msg;
 import ibis.ipl.WriteMessage;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+
+import org.apache.log4j.Logger;
 
 import nl.vu.cs.amstel.user.MessageValue;
 
 public class OutgoingQueue<M extends MessageValue> {
 	
-	public static int QUEUE_SIZE = 64;
+	protected static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	
-	private Map<String, List<M>> queues =
-		new HashMap<String, List<M>>();
-	private int count = 0;
-	private int nonemptyQueues = 0;
+	public static int PACKET_SIZE = 512; // in bytes
+	private static int BUFFER_SIZE = 128; // in bytes
 	
-	private List<M> getQueue(String vertex) {
-		if (!queues.containsKey(vertex)) {
-			queues.put(vertex, new ArrayList<M>());
+	private Map<String, MessageOutputBuffer<M>> buffers =
+		new HashMap<String, MessageOutputBuffer<M>>();
+	private int nonemptyBuffers = 0;
+	private int estSize = 0; // estimated size, in bytes
+	
+	private MessageOutputBuffer<M> getBuffer(String vertex) {
+		if (!buffers.containsKey(vertex)) {
+			buffers.put(vertex, new MessageOutputBuffer<M>(BUFFER_SIZE));
 		}
-		return queues.get(vertex);
+		return buffers.get(vertex);
 	}
 	
 	public OutgoingQueue() {
 	}
 
-	public int getCount() {
-		return count;
-	}
-	
-	public boolean reachedThreshold() {
-		return count == QUEUE_SIZE;
-	}
-	
-	public void add(String toVertex, M msg) {
-		List<M> queue = getQueue(toVertex);
-		if (queue.size() == 0) {
-			nonemptyQueues++;
+	public void add(String toVertex, M msg) throws IOException {
+		MessageOutputBuffer<M> buffer = getBuffer(toVertex);
+		int initialBytes = buffer.bytesWritten();
+		if (initialBytes == 0) {
+			nonemptyBuffers++;
+			estSize += toVertex.length();
 		}
-		count++;
-		getQueue(toVertex).add(msg);
+		getBuffer(toVertex).write(msg);
+		estSize += buffer.bytesWritten() - initialBytes;
 	}
 	
 	public void sendBulk(WriteMessage w) throws IOException {
-		w.writeInt(nonemptyQueues);
-		for (String vertex : queues.keySet()) {
-			List<M> msgs = queues.get(vertex);
-			if (msgs.size() > 0) {
+		/*
+		logger.info("Sending a packet with " + nonemptyBuffers + " buffers and "
+				+ estSize + " bytes");
+		*/ 
+		w.writeInt(nonemptyBuffers);
+		for (String vertex : buffers.keySet()) {
+			MessageOutputBuffer<M> buffer = buffers.get(vertex);
+			if (buffer.bytesWritten() > 0) {
 				w.writeString(vertex);
-				w.writeInt(msgs.size());
-				for (M msg : msgs) {
-					msg.serialize(w);
-				}
-				msgs.clear();
+				w.writeInt(buffer.bytesWritten());
+				w.writeArray(buffer.getBuffer(), 0, buffer.bytesWritten());
+				buffer.reset();
 			}
 		}
-		count = 0;
-		nonemptyQueues = 0;
+		nonemptyBuffers = 0;
+		estSize = 0;
+	}
+	
+	public boolean reachedThreshold() {
+		return PACKET_SIZE - estSize < 10;
+	}
+	
+	public boolean isEmpty() {
+		return nonemptyBuffers == 0;
 	}
 }

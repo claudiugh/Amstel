@@ -25,21 +25,16 @@ public class MessageReceiver<M extends MessageValue> extends Thread {
 	public static final int FLUSH_MSG = 0x300;
 	public static final int FLUSH_ACK_MSG = 0x400;
 	
-	private Class<M> messageClass;
-	private Map<String, VertexState<M>> vertexes;
+	private Map<String, List<byte[]>> inbox = null;
 	
 	private List<VertexState<M>> inputVertexes = 
 		new ArrayList<VertexState<M>>();
 	private ReceivePort receiver;
 	private MessageRouter<M> router;
 	
-	public MessageReceiver(ReceivePort receiver, MessageRouter<M> router,
-			Class<M> messageClass,
-			Map<String, VertexState<M>> vertexes) {
+	public MessageReceiver(ReceivePort receiver, MessageRouter<M> router) {
 		this.receiver = receiver;
 		this.router = router;
-		this.messageClass = messageClass;
-		this.vertexes = vertexes;
 	}
 	
 	private void inputMessage(ReadMessage msg) throws IOException {
@@ -47,29 +42,17 @@ public class MessageReceiver<M extends MessageValue> extends Thread {
 		vertex.deserialize(msg);
 		// stack the vertex to the local list of received vertexes
 		inputVertexes.add(vertex);		
-		logger.info("Received input vertex " + vertex.getID());
 	}
 	
 	private void computeMessage(ReadMessage r) throws IOException {
-		int count = r.readInt();
-		for (int i = 0; i < count; i++) {
+		int vertexesCount = r.readInt();
+		for (int i = 0; i < vertexesCount; i++) {
 			String vertex = r.readString();
-			int msgCount = r.readInt();
-			for (int j = 0; j < msgCount; j++) {
-				M msg;
-				try {
-					msg = messageClass.newInstance();
-					msg.deserialize(r);
-					// TODO: this will not work
-					vertexes.get(vertex).deliver(msg);
-				} catch (InstantiationException e) {
-					logger.fatal("Error instantiating a message" + e);
-					e.printStackTrace();
-				} catch (IllegalAccessException e) {
-					logger.fatal(e);
-					e.printStackTrace();
-				}
-			}
+			int msgDataSize = r.readInt();
+			byte[] msgData = new byte[msgDataSize];
+			r.readArray(msgData);
+			// save the buffer in corresponding inbox
+			inbox.get(vertex).add(msgData);			
 		}
 	}
 
@@ -80,6 +63,10 @@ public class MessageReceiver<M extends MessageValue> extends Thread {
 			w.writeInt(FLUSH_ACK_MSG);
 			w.finish();
 		}
+	}
+	
+	public void setInbox(Map<String, List<byte[]>> inbox) {
+		this.inbox = inbox;
 	}
 	
 	public List<VertexState<M>> getReceivedVertexes() {
@@ -106,7 +93,7 @@ public class MessageReceiver<M extends MessageValue> extends Thread {
 				// this is caused by receiver.close() call from the main thread
 				break;	
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.fatal(e.getStackTrace());
 			}
 		}
 	}

@@ -4,20 +4,21 @@ import ibis.ipl.ReadMessage;
 import ibis.ipl.WriteMessage;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
+import nl.vu.cs.amstel.msg.MessageOutputBuffer;
 import nl.vu.cs.amstel.user.MessageValue;
 
 public class VertexState<M extends MessageValue> {
 
+	public static final int LOCAL_INBOX_SIZE = 512;
+	
 	private String vid;
 	private String[] edges;
 	private int value;
 	private boolean active = true;
-	private boolean hasMessages = false;
-	private List<M> inbox = new ArrayList<M>();
-	private List<M> futureInbox = new ArrayList<M>();
+	// local buffer for messages that are meant to be in the futureInbox
+	private MessageOutputBuffer<M> localBuffer =
+		new MessageOutputBuffer<M>(LOCAL_INBOX_SIZE);
 	
 	public VertexState() {
 	}
@@ -28,30 +29,29 @@ public class VertexState<M extends MessageValue> {
 		this.value = value;
 	}
 	
-	public List<M> getInbox() {
-		return inbox;
-	}
-	
-	public synchronized void deliver(M m) {
-		hasMessages = true;
-		futureInbox.add(m);
-	}
-	
-	public synchronized void switchInboxes() {
-		inbox.clear();
-		hasMessages = false;
-		// swap inbox with future inbox
-		List<M> tmp = inbox;
-		inbox = futureInbox;
-		futureInbox = tmp;
-	}
-	
 	public boolean nextSuperstep() {
+		/* 
 		if (hasMessages) {
 			active = true;
 		}
+		*/
 		// return active state
 		return active;
+	}
+	
+	public void deliverLocally(M msg) throws IOException {
+		localBuffer.write(msg);
+	}
+	
+	public byte[] getLocalBuffer() {
+		if (localBuffer.size() == 0) {
+			return null;
+		}
+		return localBuffer.toByteArray();
+	}
+	
+	public boolean hasLocalMessages() {
+		return localBuffer.size() > 0;
 	}
 	
 	public void serialize(WriteMessage msg) throws IOException {

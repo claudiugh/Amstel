@@ -1,9 +1,9 @@
 package nl.vu.cs.amstel.user;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 
-import ibis.ipl.ReadMessage;
-import ibis.ipl.WriteMessage;
 
 public class IntMessage implements MessageValue {
 	public int value;
@@ -15,12 +15,12 @@ public class IntMessage implements MessageValue {
 		this.value = value;
 	}
 	
-	public void serialize(WriteMessage w) throws IOException {
-		w.writeInt(value);
+	public void serialize(DataOutputStream out) throws IOException {
+		out.writeInt(value);
 	}
 	
-	public void deserialize(ReadMessage r) throws IOException {
-		this.value = r.readInt();
+	public void deserialize(DataInputStream in) throws IOException {
+		this.value = in.readInt();
 	}
 	
 	public String toString() {
