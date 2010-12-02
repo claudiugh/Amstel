@@ -171,6 +171,7 @@ public class Worker<M extends MessageValue> {
 		loadReceivedInput();
 		
 		state.activeVertexes = vertexes.size();
+		state.msg = messageFactory.create();
 		// instantiate the vertex handler and the message iterator 
 		Vertex<M> v;
 		MessageIterator<M> msgIterator =

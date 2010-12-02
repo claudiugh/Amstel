@@ -31,6 +31,10 @@ public abstract class Vertex<M extends MessageValue> {
 		return workerState.superstep;
 	}
 	
+	public M newMessage() {
+		return workerState.msg;
+	}
+	
 	public int getValue() {
 		return state.getValue();
 	}

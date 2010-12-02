@@ -8,8 +8,10 @@ import nl.vu.cs.amstel.user.Vertex;
 public class MaxvalVertex extends Vertex<IntMessage> {
 
 	public void compute(MessageIterator<IntMessage> messages) {
+		IntMessage outMsg = newMessage();
 		if (getSuperstep() == 0) {
-			sendToAll(new IntMessage(getValue()));
+			outMsg.value = getValue();
+			sendToAll(outMsg);
 			return;
 		}
 		int max = getValue();
@@ -21,7 +23,8 @@ public class MaxvalVertex extends Vertex<IntMessage> {
 		}
 		if (max != getValue()) {
 			setValue(max);
-			sendToAll(new IntMessage(getValue()));
+			outMsg.value = max;
+			sendToAll(outMsg);
 		} else {
 			voteToHalt();
 		}

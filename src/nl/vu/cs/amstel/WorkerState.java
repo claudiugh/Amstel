@@ -8,6 +8,7 @@ public class WorkerState<M extends MessageValue> {
 	public int superstep;
 	public int activeVertexes;
 	public MessageRouter<M> router;
+	public M msg;
 	
 	public WorkerState(MessageRouter<M> router) {
 		this.router = router;
