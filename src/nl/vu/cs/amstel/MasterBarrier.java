@@ -14,7 +14,8 @@ public class MasterBarrier {
 	private Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	
 	public static final int BARRIER_ENTER = 1;
-	public static final int BARRIER_RELEASE = 2;
+	public static final int BARRIER_ENTER_COOLDOWN = 2;
+	public static final int BARRIER_RELEASE = 3;
 	
 	private int members;
 	private SendPort sender;
@@ -24,6 +25,18 @@ public class MasterBarrier {
 		this.members = members;
 		this.sender = sender;
 		this.receiver = receiver;
+	}
+	
+	protected void awaitCooldown() throws IOException {
+		for (int i = 0; i < members; i++) {
+			ReadMessage r = receiver.receive();
+			int code = r.readInt();
+			if (code != BARRIER_ENTER_COOLDOWN) {
+				logger.fatal("Incorrect barrier enter code. "
+					+ "Expecting " + BARRIER_ENTER + ", got " + code);
+			}
+			r.finish();
+		}
 	}
 	
 	/**
@@ -42,7 +55,19 @@ public class MasterBarrier {
 			activeVertexes += r.readInt();
 			r.finish();
 		}
+		release();
+		// cool-down phase
+		awaitCooldown();
+		
+		// use the number of active vertexes to decide the state of the next
+		// super-step
 		return activeVertexes;
+	}
+	
+	protected void release() throws IOException {
+		WriteMessage w = sender.newMessage();
+		w.writeInt(BARRIER_RELEASE);
+		w.finish();
 	}
 	
 	/**

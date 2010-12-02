@@ -21,14 +21,42 @@ public class WorkerBarrier {
 		this.receiver = receiver;
 	}
 	
+	protected void waitRelease(ReadMessage r) throws IOException {
+		int code = r.readInt();
+		if (code != MasterBarrier.BARRIER_RELEASE) {
+			logger.fatal("Incorrect barrier release code. Expecting "
+				+ MasterBarrier.BARRIER_RELEASE + ", got " + code);
+		}		
+	}
+	
+	/**
+	 * enter in the cool-down phase of the super-step
+	 * call order:
+	 * 	 	1. enter()
+	 * 		2. enterCooldown()
+	 * WARNING: NEVER enter in the barrier in a different order 
+	 * @throws IOException
+	 * @return the number of the super-step
+	 * 		   -1 if the algorithm is finished
+	 */
+	public int enterCooldown() throws IOException {
+		WriteMessage w = sender.newMessage();
+		w.writeInt(MasterBarrier.BARRIER_ENTER_COOLDOWN);
+		w.finish();
+		// wait for release
+		ReadMessage r = receiver.receive();
+		waitRelease(r);
+		int superstep = r.readInt();
+		r.finish();
+		return superstep;
+	}
+	
 	/**
 	 * blocks until every reached the barrier and the master ordered the release
 	 * it sends the number of active vertexes
 	 * @throws IOException
-	 * @return true if the algorithm is finished
-	 *         false otherwise
 	 */
-	public int enter(int activeVertexes) throws IOException {
+	public void enter(int activeVertexes) throws IOException {
 		// enqueue myself in the barrier
 		WriteMessage w = sender.newMessage();
 		w.writeInt(MasterBarrier.BARRIER_ENTER);
@@ -36,14 +64,8 @@ public class WorkerBarrier {
 		w.finish();
 		// block until I get the release message
 		ReadMessage r = receiver.receive();
-		int code = r.readInt();
-		if (code != MasterBarrier.BARRIER_RELEASE) {
-			logger.fatal("Incorrect barrier release code. Expecting "
-				+ MasterBarrier.BARRIER_RELEASE + ", got " + code);
-		}
-		int superstep = r.readInt();
+		waitRelease(r);
 		r.finish();
-		return superstep;
 	}
 	
 }
