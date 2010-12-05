@@ -34,13 +34,13 @@ public class OutgoingQueue<M extends MessageValue> {
 
 	public void add(String toVertex, M msg) throws IOException {
 		MessageOutputBuffer<M> buffer = getBuffer(toVertex);
-		int initialBytes = buffer.bytesWritten();
+		int initialBytes = buffer.size();
 		if (initialBytes == 0) {
 			nonemptyBuffers++;
 			estSize += toVertex.length();
 		}
 		getBuffer(toVertex).write(msg);
-		estSize += buffer.bytesWritten() - initialBytes;
+		estSize += buffer.size() - initialBytes;
 	}
 	
 	public void sendBulk(WriteMessage w) throws IOException {
@@ -51,10 +51,10 @@ public class OutgoingQueue<M extends MessageValue> {
 		w.writeInt(nonemptyBuffers);
 		for (String vertex : buffers.keySet()) {
 			MessageOutputBuffer<M> buffer = buffers.get(vertex);
-			if (buffer.bytesWritten() > 0) {
+			if (buffer.size() > 0) {
 				w.writeString(vertex);
-				w.writeInt(buffer.bytesWritten());
-				w.writeArray(buffer.getBuffer(), 0, buffer.bytesWritten());
+				w.writeInt(buffer.size());
+				w.writeArray(buffer.getBuffer(), 0, buffer.size());
 				buffer.reset();
 			}
 		}

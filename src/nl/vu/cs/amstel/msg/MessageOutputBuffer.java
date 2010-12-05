@@ -23,7 +23,4 @@ public class MessageOutputBuffer<M extends MessageValue>
 		msg.serialize(dataStream);
 	}
 	
-	public int bytesWritten() {
-		return count;
-	}
 }
