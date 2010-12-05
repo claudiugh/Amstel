@@ -18,7 +18,7 @@ public class VertexState<M extends MessageValue> {
 	private boolean active = true;
 	// local buffer for messages that are meant to be in the futureInbox
 	private MessageOutputBuffer<M> localBuffer =
-		new MessageOutputBuffer<M>(LOCAL_INBOX_SIZE);
+		new MessageOutputBuffer<M>(LOCAL_INBOX_SIZE, vid);
 	
 	public VertexState() {
 	}

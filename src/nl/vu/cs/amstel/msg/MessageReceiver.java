@@ -46,6 +46,7 @@ public class MessageReceiver<M extends MessageValue> extends Thread {
 	
 	private void computeMessage(ReadMessage r) throws IOException {
 		int vertexesCount = r.readInt();
+		//logger.info("received " + vertexesCount + " vertexes");
 		for (int i = 0; i < vertexesCount; i++) {
 			String vertex = r.readString();
 			int msgDataSize = r.readInt();

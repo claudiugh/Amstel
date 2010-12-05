@@ -97,12 +97,17 @@ public class MessageRouter<M extends MessageValue> {
 		activateWorker(owner);
 	}
 	
-	private void sendQueue(IbisIdentifier worker, OutgoingQueue<M> outQueue) throws IOException {
+	private void sendQueue(IbisIdentifier worker, OutgoingQueue<M> outQueue, 
+						boolean flush) throws IOException {
 		SendPort sender = getSender(worker);
 		synchronized(sender) {
 			WriteMessage w = sender.newMessage();
 			w.writeInt(MessageReceiver.COMPUTE_MSG);
-			outQueue.sendBulk(w);
+			if (flush) {
+				outQueue.flush(w);
+			} else {
+				outQueue.flushFilledBuffers(w);
+			}
 			w.finish();
 		}
 		activateWorker(worker);
@@ -117,7 +122,7 @@ public class MessageRouter<M extends MessageValue> {
 			OutgoingQueue<M> outQueue = outQueues.get(owner);
 			outQueue.add(toVertex, msg);
 			if (outQueue.reachedThreshold()) {
-				sendQueue(owner, outQueue);
+				sendQueue(owner, outQueue, false);
 			}
 		}
 	}
@@ -140,7 +145,7 @@ public class MessageRouter<M extends MessageValue> {
 		for (IbisIdentifier worker : senders.keySet()) {
 			OutgoingQueue<M> outQueue = outQueues.get(worker);
 			if (!outQueue.isEmpty()) {
-				sendQueue(worker, outQueue);
+				sendQueue(worker, outQueue, true);
 			}
 			if (activeWorkers.contains(worker)) {
 				sendFlush(worker);
