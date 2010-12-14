@@ -25,16 +25,19 @@ public class MessageReceiver<M extends MessageValue> extends Thread {
 	public static final int FLUSH_MSG = 0x300;
 	public static final int FLUSH_ACK_MSG = 0x400;
 	
-	private Map<String, List<byte[]>> inbox = null;
+	private List<byte[]>[] inbox = null;
 	
 	private List<VertexState<M>> inputVertexes = 
 		new ArrayList<VertexState<M>>();
 	private ReceivePort receiver;
 	private MessageRouter<M> router;
+	private Map<String, VertexState<M>> vertexes;
 	
-	public MessageReceiver(ReceivePort receiver, MessageRouter<M> router) {
+	public MessageReceiver(ReceivePort receiver, MessageRouter<M> router,
+			Map<String, VertexState<M>> vertexes) {
 		this.receiver = receiver;
 		this.router = router;
+		this.vertexes = vertexes;
 	}
 	
 	private void inputMessage(ReadMessage msg) throws IOException {
@@ -53,7 +56,7 @@ public class MessageReceiver<M extends MessageValue> extends Thread {
 			byte[] msgData = new byte[msgDataSize];
 			r.readArray(msgData);
 			// save the buffer in corresponding inbox
-			inbox.get(vertex).add(msgData);			
+			inbox[vertexes.get(vertex).getIndex()].add(msgData);
 		}
 	}
 
@@ -66,7 +69,7 @@ public class MessageReceiver<M extends MessageValue> extends Thread {
 		}
 	}
 	
-	public void setInbox(Map<String, List<byte[]>> inbox) {
+	public void setInbox(List<byte[]>[] inbox) {
 		this.inbox = inbox;
 	}
 	

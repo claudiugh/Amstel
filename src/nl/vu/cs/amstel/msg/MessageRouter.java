@@ -25,6 +25,7 @@ public class MessageRouter<M extends MessageValue> {
 	private Ibis ibis;
 	private IbisIdentifier[] partitions;
 	private Map<String, VertexState<M>> vertexes;
+	private MessageOutputBuffer<M>[] localInbox = null;
 	
 	// the send ports for each other worker
 	private Map<IbisIdentifier, SendPort> senders = 
@@ -49,6 +50,10 @@ public class MessageRouter<M extends MessageValue> {
 		this.ibis = ibis;
 		this.partitions = partitions;
 		this.vertexes = vertexes;
+	}
+	
+	public void setLocalInbox(MessageOutputBuffer<M>[] localInbox) {
+		this.localInbox = localInbox;
 	}
 	
 	public synchronized void deactivateWorker(IbisIdentifier worker) {
@@ -116,7 +121,8 @@ public class MessageRouter<M extends MessageValue> {
 	public void send(String toVertex, M msg) throws IOException {
 		IbisIdentifier owner = getOwner(toVertex);
 		if (owner.equals(ibis.identifier())) {
-			vertexes.get(toVertex).deliverLocally(msg);
+			// deliver locally
+			localInbox[vertexes.get(toVertex).getIndex()].write(msg);
 		} else {
 			// enqueue for sending
 			OutgoingQueue<M> outQueue = outQueues.get(owner);

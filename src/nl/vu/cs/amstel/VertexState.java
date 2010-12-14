@@ -5,20 +5,16 @@ import ibis.ipl.WriteMessage;
 
 import java.io.IOException;
 
-import nl.vu.cs.amstel.msg.MessageOutputBuffer;
 import nl.vu.cs.amstel.user.MessageValue;
 
 public class VertexState<M extends MessageValue> {
 
 	public static final int LOCAL_INBOX_SIZE = 512;
 	
+	private int index;
 	private String vid;
 	private String[] edges;
 	private int value;
-	private boolean active = true;
-	// local buffer for messages that are meant to be in the futureInbox
-	private MessageOutputBuffer<M> localBuffer =
-		new MessageOutputBuffer<M>(LOCAL_INBOX_SIZE, vid);
 	
 	public VertexState() {
 	}
@@ -27,35 +23,6 @@ public class VertexState<M extends MessageValue> {
 		this.vid = vid;
 		this.edges = edges;
 		this.value = value;
-	}
-	
-	public boolean nextSuperstep() {
-		/* 
-		if (hasMessages) {
-			active = true;
-		}
-		*/
-		// return active state
-		return active;
-	}
-	
-	public void deliverLocally(M msg) throws IOException {
-		localBuffer.write(msg);
-	}
-	
-	public byte[] getLocalBuffer() {
-		if (localBuffer.size() == 0) {
-			return null;
-		}
-		return localBuffer.toByteArray();
-	}
-	
-	public void resetLocalBuffer() {
-		localBuffer.reset();
-	}
-	
-	public boolean hasLocalMessages() {
-		return localBuffer.size() > 0;
 	}
 	
 	public void serialize(WriteMessage msg) throws IOException {
@@ -81,6 +48,14 @@ public class VertexState<M extends MessageValue> {
 		return vid;
 	}
 	
+	public void setIndex(int index) {
+		this.index = index;
+	}
+	
+	public int getIndex() {
+		return index;
+	}
+	
 	public int getValue() {
 		return value;
 	}
@@ -91,14 +66,6 @@ public class VertexState<M extends MessageValue> {
 	
 	public String[] getOutEdges() {
 		return edges;
-	}
-	
-	public void setActive(boolean active) {
-		this.active = active;
-	}
-	
-	public boolean isActive() {
-		return active;
 	}
 	
 	public String toString() {

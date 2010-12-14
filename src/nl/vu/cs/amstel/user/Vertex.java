@@ -44,7 +44,7 @@ public abstract class Vertex<M extends MessageValue> {
 	}
 	
 	public void voteToHalt() {
-		state.setActive(false);
+		workerState.active[state.getIndex()] = false;
 	}
 	
 	public String[] getOutEdges() {

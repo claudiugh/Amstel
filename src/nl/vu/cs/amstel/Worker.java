@@ -12,6 +12,7 @@ import nl.vu.cs.amstel.graph.GraphInput;
 import nl.vu.cs.amstel.graph.InputPartition;
 import nl.vu.cs.amstel.msg.MessageFactory;
 import nl.vu.cs.amstel.msg.MessageIterator;
+import nl.vu.cs.amstel.msg.MessageOutputBuffer;
 import nl.vu.cs.amstel.msg.MessageReceiver;
 import nl.vu.cs.amstel.msg.MessageRouter;
 import nl.vu.cs.amstel.user.MessageValue;
@@ -42,13 +43,18 @@ public class Worker<M extends MessageValue> {
 	private InputPartition inputPartition;
 	
 	// vertex states
+	private int crtIndex = -1;
+	private Map<Integer, String> idToVertex =
+		new HashMap<Integer, String>();
+	private boolean[] active;
+	
 	private Map<String, VertexState<M>> vertexes = 
 		new HashMap<String, VertexState<M>>();
 	// messages in-boxes
-	private Map<String, List<byte[]>> inbox =
-		new HashMap<String, List<byte[]>>();
-	private Map<String, List<byte[]>> futureInbox = 
-		new HashMap<String, List<byte[]>>();
+	private List<byte[]>[] inbox;
+	private List<byte[]>[] futureInbox;
+	// local buffer for messages that are meant to be in the futureInbox
+	private MessageOutputBuffer<M>[] localInbox;
 	
 	// messaging entities
 	private MessageReceiver<M> messageReceiver;
@@ -75,9 +81,10 @@ public class Worker<M extends MessageValue> {
 	}
 	
 	private void addVertex(VertexState<M> vertex) {
+		crtIndex++;
+		vertex.setIndex(crtIndex);
 		vertexes.put(vertex.getID(), vertex);
-		inbox.put(vertex.getID(), new ArrayList<byte[]>());
-		futureInbox.put(vertex.getID(), new ArrayList<byte[]>());
+		idToVertex.put(vertex.getIndex(), vertex.getID());
 	}
 	
 	private void readInput() throws IOException {
@@ -101,12 +108,31 @@ public class Worker<M extends MessageValue> {
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
+	private void initVertexArrays() {
+		int count = crtIndex + 1;
+		active = new boolean[count];
+		inbox = new List[count];
+		localInbox = new MessageOutputBuffer[count];
+		futureInbox = new List[count];
+		for (int i = 0; i < count; i++) {
+			active[i] = true;
+			inbox[i] = new ArrayList<byte[]>();
+			futureInbox[i] = new ArrayList<byte[]>();
+			localInbox[i] = new MessageOutputBuffer<M>(
+					VertexState.LOCAL_INBOX_SIZE, idToVertex.get(i));
+		}
+		messageRouter.setLocalInbox(localInbox);
+		state.active = active;
+	}
+	
 	private void setupWorkerConnections() throws IOException {
 		receiver = ibis.createReceivePort(Node.W2W_PORT, "worker");
 		receiver.enableConnections();
 		// this is a thread that only listens for incoming messages
 		messageRouter = new MessageRouter<M>(ibis, partitions, vertexes);
-		messageReceiver = new MessageReceiver<M>(receiver, messageRouter);
+		messageReceiver = new MessageReceiver<M>(receiver, messageRouter, 
+				vertexes);
 		messageReceiver.start();
 		state = new WorkerState<M>(messageRouter);
 	}
@@ -119,21 +145,22 @@ public class Worker<M extends MessageValue> {
 			messageReceiver.join();
 		} catch (InterruptedException e) {
 			e.printStackTrace();
-		}		
+		}
 	}
 	
 	private void computeVertexes(Vertex<M> v, MessageIterator<M> msgIterator) 
 			throws IOException {
-		for (String vertex : vertexes.keySet()) {
-			List<byte[]> msgInbox = inbox.get(vertex);
-			VertexState<M> state = vertexes.get(vertex);
-			if (state.hasLocalMessages()) {
-				msgInbox.add(state.getLocalBuffer());
-				state.resetLocalBuffer();
+		for (int i = 0; i < active.length; i++) {
+			List<byte[]> msgInbox = inbox[i];
+			if (localInbox[i].size() > 0) {
+				msgInbox.add(localInbox[i].toByteArray());
+				localInbox[i].reset();
 			}
-			if (msgInbox.size() > 0 || state.isActive()) {
+			if (msgInbox.size() > 0 || active[i]) {
+				VertexState<M> state = vertexes.get(idToVertex.get(i));
 				v.setState(state);
 				// we consider the vertex as active
+				active[i] = true;
 				msgIterator.setBuffers(msgInbox);
 				v.compute(msgIterator);
 				// clear all messages
@@ -144,9 +171,8 @@ public class Worker<M extends MessageValue> {
 	
 	private int countActiveVertexes() {
 		int count = 0;
-		for (String vertex : vertexes.keySet()) {
-			if (futureInbox.get(vertex).size() > 0 ||
-					vertexes.get(vertex).isActive()) {
+		for (int i = 0; i < active.length; i++) {
+			if (futureInbox[i].size() > 0 || active[i]) {
 				count++;
 			}
 		}
@@ -154,7 +180,7 @@ public class Worker<M extends MessageValue> {
 	}
 	
 	private void swapInboxes() {
-		Map<String, List<byte[]>> tmp = inbox;
+		List<byte[]>[] tmp = inbox;
 		inbox = futureInbox;
 		futureInbox = tmp;
 	}
@@ -170,6 +196,8 @@ public class Worker<M extends MessageValue> {
 		barrier.enter(1);
 		barrier.enterCooldown();
 		loadReceivedInput();
+		// initialize vertex arrays
+		initVertexArrays();
 		
 		state.activeVertexes = vertexes.size();
 		state.msg = messageFactory.create();
