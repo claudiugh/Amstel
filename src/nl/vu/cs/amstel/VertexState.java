@@ -50,6 +50,10 @@ public class VertexState<M extends MessageValue> {
 		return localBuffer.toByteArray();
 	}
 	
+	public void resetLocalBuffer() {
+		localBuffer.reset();
+	}
+	
 	public boolean hasLocalMessages() {
 		return localBuffer.size() > 0;
 	}

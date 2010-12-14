@@ -129,6 +129,7 @@ public class Worker<M extends MessageValue> {
 			VertexState<M> state = vertexes.get(vertex);
 			if (state.hasLocalMessages()) {
 				msgInbox.add(state.getLocalBuffer());
+				state.resetLocalBuffer();
 			}
 			if (msgInbox.size() > 0 || state.isActive()) {
 				v.setState(state);
