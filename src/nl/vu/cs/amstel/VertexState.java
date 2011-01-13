@@ -20,9 +20,13 @@ public class VertexState<M extends MessageValue> {
 	}
 	
 	public VertexState(String vid, String[] edges, int value) {
-		this.vid = vid;
+		this.vid = VertexIdStorage.get(vid);
 		this.edges = edges;
 		this.value = value;
+		
+		for (int i = 0; i < edges.length; i++) {
+			edges[i] = VertexIdStorage.get(edges[i]);
+		}
 	}
 	
 	public void serialize(WriteMessage msg) throws IOException {
@@ -35,12 +39,12 @@ public class VertexState<M extends MessageValue> {
 	}
 	
 	public void deserialize(ReadMessage msg) throws IOException {
-		vid = msg.readString();
+		vid = VertexIdStorage.get(msg.readString());
 		value = msg.readInt();
 		int edgesNo = msg.readInt();
 		edges = new String[edgesNo];
 		for (int i = 0; i < edgesNo; i++) {
-			edges[i] = msg.readString();
+			edges[i] = VertexIdStorage.get(msg.readString());
 		}
 	}
 
