@@ -26,4 +26,10 @@ public class IntMessage implements MessageValue {
 	public String toString() {
 		return "" + value;
 	}
+
+	@Override
+	public <M extends MessageValue> void copy(M other) {
+		IntMessage m = (IntMessage) other;
+		value = m.value;
+	}
 }

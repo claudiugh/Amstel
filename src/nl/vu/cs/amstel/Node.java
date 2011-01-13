@@ -1,5 +1,6 @@
 package nl.vu.cs.amstel;
 
+import nl.vu.cs.amstel.user.Combiner;
 import nl.vu.cs.amstel.user.MessageValue;
 import nl.vu.cs.amstel.user.Vertex;
 
@@ -27,21 +28,35 @@ public class Node<M extends MessageValue> {
     
     IbisCapabilities ibisCapabilities = new IbisCapabilities(
             IbisCapabilities.ELECTIONS_STRICT);	
-	    
-	public void run(int nodes, Class<? extends Vertex<M>> vertexClass, 
+	
+    private Ibis ibis;
+    private AmstelNode<M> node;
+    
+    public Node(int nodes, Class<? extends Vertex<M>> vertexClass, 
 			Class<M> messageClass) throws Exception {
-		Ibis ibis = IbisFactory.createIbis(ibisCapabilities, null, 
+    	ibis = IbisFactory.createIbis(ibisCapabilities, null, 
 				W2M_PORT, M2W_PORT, W2W_PORT);		 
 	    // Elect a server
 	    IbisIdentifier master = ibis.registry().elect("Master");
-	    
     	if (master.equals(ibis.identifier())) {
     		// the number of workers is the total number of nodes excluding the
     		// the master node
-    		new Master(ibis, nodes - 1);
+    		node = new Master<M>(ibis, nodes - 1);
 	    } else {
-	    	new Worker<M>(ibis, master, vertexClass, messageClass);
+	    	node = new Worker<M>(ibis, master, vertexClass, messageClass);
 	    }
+    }
+    
+    public void setCombiner(Class<? extends Combiner<M>> combinerClass) {
+    	node.setCombiner(combinerClass);
+    }
+    
+	public void run() {
+		try {
+			node.run();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 }

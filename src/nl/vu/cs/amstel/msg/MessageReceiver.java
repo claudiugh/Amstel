@@ -3,7 +3,6 @@ package nl.vu.cs.amstel.msg;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -25,19 +24,16 @@ public class MessageReceiver<M extends MessageValue> extends Thread {
 	public static final int FLUSH_MSG = 0x300;
 	public static final int FLUSH_ACK_MSG = 0x400;
 	
-	private List<byte[]>[] inbox = null;
+	private InboundQueue<M> inbox = null;
 	
 	private List<VertexState<M>> inputVertexes = 
 		new ArrayList<VertexState<M>>();
 	private ReceivePort receiver;
 	private MessageRouter<M> router;
-	private Map<String, VertexState<M>> vertexes;
 	
-	public MessageReceiver(ReceivePort receiver, MessageRouter<M> router,
-			Map<String, VertexState<M>> vertexes) {
+	public MessageReceiver(ReceivePort receiver, MessageRouter<M> router) {
 		this.receiver = receiver;
 		this.router = router;
-		this.vertexes = vertexes;
 	}
 	
 	private void inputMessage(ReadMessage msg) throws IOException {
@@ -48,16 +44,7 @@ public class MessageReceiver<M extends MessageValue> extends Thread {
 	}
 	
 	private void computeMessage(ReadMessage r) throws IOException {
-		int vertexesCount = r.readInt();
-		//logger.info("received " + vertexesCount + " vertexes");
-		for (int i = 0; i < vertexesCount; i++) {
-			String vertex = r.readString();
-			int msgDataSize = r.readInt();
-			byte[] msgData = new byte[msgDataSize];
-			r.readArray(msgData);
-			// save the buffer in corresponding inbox
-			inbox[vertexes.get(vertex).getIndex()].add(msgData);
-		}
+		inbox.deliver(r);
 	}
 
 	private void sendFlushAck(ReadMessage r) throws IOException {
@@ -69,7 +56,7 @@ public class MessageReceiver<M extends MessageValue> extends Thread {
 		}
 	}
 	
-	public void setInbox(List<byte[]>[] inbox) {
+	public void setInbox(InboundQueue<M> inbox) {
 		this.inbox = inbox;
 	}
 	
@@ -97,7 +84,7 @@ public class MessageReceiver<M extends MessageValue> extends Thread {
 				// this is caused by receiver.close() call from the main thread
 				break;	
 			} catch (IOException e) {
-				logger.fatal(e.getStackTrace());
+				logger.fatal("Error in Message Receiver", e);
 			}
 		}
 	}

@@ -6,7 +6,6 @@ import org.apache.log4j.Logger;
 
 import nl.vu.cs.amstel.VertexState;
 import nl.vu.cs.amstel.WorkerState;
-import nl.vu.cs.amstel.msg.MessageIterator;
 
 public abstract class Vertex<M extends MessageValue> {
 
@@ -66,7 +65,7 @@ public abstract class Vertex<M extends MessageValue> {
 		}
 	}
 	
-	abstract public void compute(MessageIterator<M> messages);
+	abstract public void compute(Iterable<M> messages);
 	
 	public String toString() {
 		return getID() + "(" + getValue() + ")";

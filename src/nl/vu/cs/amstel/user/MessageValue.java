@@ -9,5 +9,6 @@ public interface MessageValue {
 	public void serialize(DataOutputStream out) throws IOException;
 	
 	public void deserialize(DataInputStream in) throws IOException;
-	
+
+	public <M extends MessageValue> void copy(M other);
 }

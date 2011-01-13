@@ -1,20 +1,23 @@
 package nl.vu.cs.amstel;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.lang.reflect.Array;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
 
 import nl.vu.cs.amstel.graph.GraphInput;
 import nl.vu.cs.amstel.graph.InputPartition;
+import nl.vu.cs.amstel.msg.CombinedInboundQueue;
+import nl.vu.cs.amstel.msg.InboundQueue;
 import nl.vu.cs.amstel.msg.MessageFactory;
 import nl.vu.cs.amstel.msg.MessageIterator;
 import nl.vu.cs.amstel.msg.MessageOutputBuffer;
 import nl.vu.cs.amstel.msg.MessageReceiver;
 import nl.vu.cs.amstel.msg.MessageRouter;
+import nl.vu.cs.amstel.msg.SerializedInboundQueue;
+import nl.vu.cs.amstel.user.Combiner;
 import nl.vu.cs.amstel.user.MessageValue;
 import nl.vu.cs.amstel.user.Vertex;
 
@@ -25,8 +28,9 @@ import ibis.ipl.ReceivePort;
 import ibis.ipl.SendPort;
 import ibis.ipl.WriteMessage;
 
-public class Worker<M extends MessageValue> {
+public class Worker<M extends MessageValue> implements AmstelNode<M> {
 
+	private static final int LOCAL_INBOX_SIZE = 512;
 	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	
 	// for instantiation of user provided classes
@@ -48,13 +52,11 @@ public class Worker<M extends MessageValue> {
 		new HashMap<Integer, String>();
 	private boolean[] active;
 	
-	private Map<String, VertexState<M>> vertexes = 
+	private Map<String, VertexState<M>> vertices = 
 		new HashMap<String, VertexState<M>>();
 	// messages in-boxes
-	private List<byte[]>[] inbox;
-	private List<byte[]>[] futureInbox;
-	// local buffer for messages that are meant to be in the futureInbox
-	private MessageOutputBuffer<M>[] localInbox;
+	private InboundQueue<M> inbox;
+	private InboundQueue<M> futureInbox;
 	
 	// messaging entities
 	private MessageReceiver<M> messageReceiver;
@@ -83,7 +85,7 @@ public class Worker<M extends MessageValue> {
 	private void addVertex(VertexState<M> vertex) {
 		crtIndex++;
 		vertex.setIndex(crtIndex);
-		vertexes.put(vertex.getID(), vertex);
+		vertices.put(vertex.getID(), vertex);
 		idToVertex.put(vertex.getIndex(), vertex.getID());
 	}
 	
@@ -109,20 +111,38 @@ public class Worker<M extends MessageValue> {
 	}
 	
 	@SuppressWarnings("unchecked")
-	private void initVertexArrays() {
+	private void initInboxes() {
 		int count = crtIndex + 1;
 		active = new boolean[count];
-		inbox = new List[count];
-		localInbox = new MessageOutputBuffer[count];
-		futureInbox = new List[count];
-		for (int i = 0; i < count; i++) {
-			active[i] = true;
-			inbox[i] = new ArrayList<byte[]>();
-			futureInbox[i] = new ArrayList<byte[]>();
-			localInbox[i] = new MessageOutputBuffer<M>(
-					VertexState.LOCAL_INBOX_SIZE, idToVertex.get(i));
+		
+		if (!messageFactory.hasCombiner()) {
+			MessageOutputBuffer<M>[] localInbox =
+				new MessageOutputBuffer[count];
+			MessageIterator<M> msgIterator = 
+				new MessageIterator<M>(messageFactory.create());
+			inbox = new SerializedInboundQueue(count, vertices, localInbox,
+					msgIterator);
+			futureInbox = new SerializedInboundQueue(count, vertices, 
+					localInbox, msgIterator);
+			for (int i = 0; i < count; i++) {
+				active[i] = true;
+				localInbox[i] = new MessageOutputBuffer<M>(LOCAL_INBOX_SIZE, 
+						idToVertex.get(i));
+			}
+		} else {
+			M[] localInbox = (M[]) Array.newInstance(
+					messageFactory.getMessageClass(),
+					count);
+			inbox = new CombinedInboundQueue(count, messageFactory, vertices,
+					localInbox);
+			futureInbox = new CombinedInboundQueue(count, messageFactory,
+					vertices, localInbox);
+			for (int i = 0; i < count; i++) {
+				active[i] = true;
+			}
 		}
-		messageRouter.setLocalInbox(localInbox);
+
+		messageRouter.setInbox(inbox);
 		state.active = active;
 	}
 	
@@ -130,9 +150,9 @@ public class Worker<M extends MessageValue> {
 		receiver = ibis.createReceivePort(Node.W2W_PORT, "worker");
 		receiver.enableConnections();
 		// this is a thread that only listens for incoming messages
-		messageRouter = new MessageRouter<M>(ibis, partitions, vertexes);
-		messageReceiver = new MessageReceiver<M>(receiver, messageRouter, 
-				vertexes);
+		messageRouter = new MessageRouter<M>(ibis, partitions, vertices,
+				messageFactory);
+		messageReceiver = new MessageReceiver<M>(receiver, messageRouter);
 		messageReceiver.start();
 		state = new WorkerState<M>(messageRouter);
 	}
@@ -150,21 +170,19 @@ public class Worker<M extends MessageValue> {
 	
 	private void computeVertexes(Vertex<M> v, MessageIterator<M> msgIterator) 
 			throws IOException {
+		int msgs = 0;
 		for (int i = 0; i < active.length; i++) {
-			List<byte[]> msgInbox = inbox[i];
-			if (localInbox[i].size() > 0) {
-				msgInbox.add(localInbox[i].toByteArray());
-				localInbox[i].reset();
-			}
-			if (msgInbox.size() > 0 || active[i]) {
-				VertexState<M> state = vertexes.get(idToVertex.get(i));
+			if (inbox.hasMessages(i) || active[i]) {
+				VertexState<M> state = vertices.get(idToVertex.get(i));
 				v.setState(state);
 				// we consider the vertex as active
 				active[i] = true;
-				msgIterator.setBuffers(msgInbox);
-				v.compute(msgIterator);
+				v.compute(inbox.getIterator(i));
 				// clear all messages
-				msgInbox.clear();
+				inbox.clear(i);
+			}
+			if (inbox.hasMessages(i)) {
+				msgs++;
 			}
 		}
 	}
@@ -172,7 +190,7 @@ public class Worker<M extends MessageValue> {
 	private int countActiveVertexes() {
 		int count = 0;
 		for (int i = 0; i < active.length; i++) {
-			if (futureInbox[i].size() > 0 || active[i]) {
+			if (futureInbox.hasMessages(i) || active[i]) {
 				count++;
 			}
 		}
@@ -180,12 +198,17 @@ public class Worker<M extends MessageValue> {
 	}
 	
 	private void swapInboxes() {
-		List<byte[]>[] tmp = inbox;
+		InboundQueue<M> tmp = inbox;
 		inbox = futureInbox;
 		futureInbox = tmp;
 	}
 	
-	private void run() throws IOException, InterruptedException {
+	@Override
+	public void setCombiner(Class<? extends Combiner<M>> combinerClass) {
+		messageFactory.setCombinerClass(combinerClass);
+	}
+	
+	public void run() throws IOException, InterruptedException {
 		register();
 		setupWorkerConnections();
 		// reading input and distribute vertexes
@@ -197,9 +220,9 @@ public class Worker<M extends MessageValue> {
 		barrier.enterCooldown();
 		loadReceivedInput();
 		// initialize vertex arrays
-		initVertexArrays();
+		initInboxes();
 		
-		state.activeVertexes = vertexes.size();
+		state.activeVertexes = vertices.size();
 		state.msg = messageFactory.create();
 		// instantiate the vertex handler and the message iterator 
 		Vertex<M> v;
@@ -236,8 +259,8 @@ public class Worker<M extends MessageValue> {
 		
 		// check values
 		int max = 0;
-		for (String vertex : vertexes.keySet()) {
-			int value = vertexes.get(vertex).getValue();
+		for (String vertex : vertices.keySet()) {
+			int value = vertices.get(vertex).getValue();
 			if (value > max) {
 				max = value;
 			}
@@ -246,6 +269,10 @@ public class Worker<M extends MessageValue> {
 		
 		// close connections
 		closeWorkerConnections();
+		// exit
+		masterSender.close();
+		masterReceiver.close();
+		ibis.end();
 	}
 	
 	public Worker(Ibis ibis, IbisIdentifier master, 
@@ -262,13 +289,6 @@ public class Worker<M extends MessageValue> {
 		masterReceiver = ibis.createReceivePort(Node.M2W_PORT, "m2w");
 		masterReceiver.enableConnections();
 		barrier = new WorkerBarrier(masterSender, masterReceiver);
-		
-		// run the work
-		run();
-		
-		// exit
-		masterSender.close();
-		masterReceiver.close();
-		ibis.end();
 	}
+
 }

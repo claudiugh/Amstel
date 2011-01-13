@@ -7,6 +7,8 @@ import org.apache.log4j.Logger;
 
 import nl.vu.cs.amstel.graph.GraphInput;
 import nl.vu.cs.amstel.graph.InputPartition;
+import nl.vu.cs.amstel.user.Combiner;
+import nl.vu.cs.amstel.user.MessageValue;
 
 import ibis.ipl.Ibis;
 import ibis.ipl.IbisIdentifier;
@@ -15,7 +17,7 @@ import ibis.ipl.ReceivePort;
 import ibis.ipl.SendPort;
 import ibis.ipl.WriteMessage;
 
-public class Master {
+public class Master<M extends MessageValue> implements AmstelNode<M> {
 
 	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel.master");
 	
@@ -51,28 +53,6 @@ public class Master {
 		w.finish();
 	}
 	
-	private void run() throws Exception {
-		// setup phase 
-		registration();
-		// reading input
-		barrier.await();
-		barrier.release(0);
-		// run the super-steps 
-		int superstep = 0;
-		int activeVertexes = 1;
-		while (activeVertexes > 0) {
-			activeVertexes = barrier.await();
-			if (activeVertexes == 0) {
-				// end of the algorithm
-				superstep = -1;
-			}
-			logger.info("Superstep " + superstep + ": "
-				+ activeVertexes + " vertexes left");
-			barrier.release(superstep);
-			superstep++;
-		}
-	}
-	
 	private Map<IbisIdentifier, InputPartition> partitionInput() {
 		HashMap<IbisIdentifier, InputPartition> partitions = 
 			new HashMap<IbisIdentifier, InputPartition>();
@@ -99,31 +79,53 @@ public class Master {
 		}
 	}
 	
-	public Master(Ibis ibis, int workersNo) throws Exception {
+	@Override
+	public void setCombiner(Class<? extends Combiner<M>> combinerClass) {
+		// the combiner is not useful for the Master node
+		// or at least for now...
+	}
+	
+	public void run() throws Exception {
 		logger.info("Running for " + GraphInput.VERTEXES + " vertexes"
-			+ " and " + GraphInput.EDGES + " edges");
-		
+				+ " and " + GraphInput.EDGES + " edges");
 		// record start time
 		long startTime = System.currentTimeMillis();
-		// setup
-		this.ibis = ibis;
-		workers = new IbisIdentifier[workersNo];
-		receiver = ibis.createReceivePort(Node.W2M_PORT, "w2m");
-		receiver.enableConnections();
-		sender = ibis.createSendPort(Node.M2W_PORT, "m2w");
-		barrier = new MasterBarrier(workersNo, sender, receiver);
 		
-		// the actual running 
-		run();
-		
-		// exit
-		receiver.close();
-		sender.close();
-		ibis.end();
-		
+		// setup phase 
+		receiver.enableConnections();			
+		registration();
+		// reading input
+		barrier.await();
+		barrier.release(0);
+		// run the super-steps 
+		int superstep = 1;
+		int activeVertexes = 1;
+		while (activeVertexes > 0) {
+			activeVertexes = barrier.await();
+			if (activeVertexes == 0) {
+				// end of the algorithm
+				superstep = -1;
+			}
+			logger.info("Superstep " + superstep + ": "
+				+ activeVertexes + " vertexes left");
+			barrier.release(superstep);
+			superstep++;
+		}
 		// compute running time
 		long runningTime = System.currentTimeMillis() - startTime;
 		logger.info("Running time: " + formatTime(runningTime));
+		// exit
+		receiver.close();
+		sender.close();
+		ibis.end();		
+	}
+
+	public Master(Ibis ibis, int workersNo) throws Exception {
+		this.ibis = ibis;
+		workers = new IbisIdentifier[workersNo];
+		receiver = ibis.createReceivePort(Node.W2M_PORT, "w2m");
+		sender = ibis.createSendPort(Node.M2W_PORT, "m2w");
+		barrier = new MasterBarrier(workersNo, sender, receiver);
 	}
 	
 }

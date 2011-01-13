@@ -20,12 +20,18 @@ import ibis.ipl.WriteMessage;
 
 public class MessageRouter<M extends MessageValue> {
 
-	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
+	protected static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	
-	private Ibis ibis;
+	protected Ibis ibis;
+	protected MessageFactory<M> msgFactory;
+	
 	private IbisIdentifier[] partitions;
-	private Map<String, VertexState<M>> vertexes;
-	private MessageOutputBuffer<M>[] localInbox = null;
+	private Map<String, VertexState<M>> vertices;
+	
+	
+	// since we use only the local delivery feature, the inbox doesn't 
+	// need to be changed every super-step if the local inbox is common.
+	private InboundQueue<M> inbox = null;
 	
 	// the send ports for each other worker
 	private Map<IbisIdentifier, SendPort> senders = 
@@ -37,6 +43,16 @@ public class MessageRouter<M extends MessageValue> {
 	private Set<IbisIdentifier> activeWorkers =
 		Collections.synchronizedSet(new HashSet<IbisIdentifier>());
 	
+	public MessageRouter(Ibis ibis, IbisIdentifier[] partitions, 
+			Map<String, VertexState<M>> vertices, 
+			MessageFactory<M> msgFactory) {
+		this.ibis = ibis;
+		this.partitions = partitions;
+		this.vertices = vertices;
+		this.msgFactory = msgFactory;
+		
+	}
+	
 	public IbisIdentifier getOwner(String vid) {
 		int hash = vid.hashCode();
 		if (hash < 0) {
@@ -45,15 +61,8 @@ public class MessageRouter<M extends MessageValue> {
 		return partitions[hash % partitions.length];
 	}
 	
-	public MessageRouter(Ibis ibis, IbisIdentifier[] partitions, 
-			Map<String, VertexState<M>> vertexes) {
-		this.ibis = ibis;
-		this.partitions = partitions;
-		this.vertexes = vertexes;
-	}
-	
-	public void setLocalInbox(MessageOutputBuffer<M>[] localInbox) {
-		this.localInbox = localInbox;
+	public void setInbox(InboundQueue<M> inbox) {
+		this.inbox = inbox;
 	}
 	
 	public synchronized void deactivateWorker(IbisIdentifier worker) {
@@ -80,12 +89,20 @@ public class MessageRouter<M extends MessageValue> {
 		}
 	}
 	
+	private OutgoingQueue<M> createOutgoingQueue() {
+		if (!msgFactory.hasCombiner()) {
+			return new SerializedOutgoingQueue<M>();
+		}
+		// else create the combined version
+		return new CombinedOutgoingQueue<M>(msgFactory);
+	}
+	
 	public synchronized SendPort getSender(IbisIdentifier worker) throws IOException {
 		if (!senders.containsKey(worker)) {
 			SendPort sender = ibis.createSendPort(Node.W2W_PORT);
 			sender.connect(worker, "worker");
 			senders.put(worker, sender);
-			outQueues.put(worker, new OutgoingQueue<M>());
+			outQueues.put(worker, createOutgoingQueue());
 		}
 		return senders.get(worker);
 	}
@@ -122,7 +139,7 @@ public class MessageRouter<M extends MessageValue> {
 		IbisIdentifier owner = getOwner(toVertex);
 		if (owner.equals(ibis.identifier())) {
 			// deliver locally
-			localInbox[vertexes.get(toVertex).getIndex()].write(msg);
+			inbox.deliverLocally(vertices.get(toVertex).getIndex(), msg);
 		} else {
 			// enqueue for sending
 			OutgoingQueue<M> outQueue = outQueues.get(owner);
