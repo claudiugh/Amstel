@@ -47,10 +47,6 @@ public class CombinedInboundQueue<M extends MessageValue>
 	public void deliver(ReadMessage r) throws IOException {
 		int verticesCount = r.readInt();
 		int bufferSize = r.readInt();
-		/*
-		logger.fatal("Vertices: " + verticesCount + 
-				",buffer count: " + bufferSize);
-		*/
 		byte[] buffer = new byte[bufferSize];
 		r.readArray(buffer);
 		ByteArrayInputStream byteStream = new ByteArrayInputStream(buffer);

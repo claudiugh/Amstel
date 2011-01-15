@@ -22,10 +22,8 @@ public class MaxvalRunner {
 		} else {
 			throw new Exception("Number of nodes unspecified");
 		}
-		
 		if (args[1] != null) {
 			vertexes = Integer.parseInt(args[1]);
-			
 			if (args[2] != null) {
 				edges = Integer.parseInt(args[2]);
 			} else {

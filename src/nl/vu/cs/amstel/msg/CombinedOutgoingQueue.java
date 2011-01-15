@@ -6,6 +6,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
@@ -19,12 +20,14 @@ public class CombinedOutgoingQueue<M extends MessageValue>
 	protected static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	
 	private static final int OUTPUT_BUFFER_SIZE = 4096;
+	private static final int COUNT_THRESHOLD = 1024;
 	
 	protected MessageFactory<M> msgFactory;
 	protected Combiner<M> combiner;
-	protected Map<String, M> buffers = new HashMap<String, M>();
+	
+	private Map<String, M> buffers = new HashMap<String, M>();
+	private LinkedList<String> filled = new LinkedList<String>();
 
-	private int nonemptyBuffers = 0; 
 	private ByteArrayOutputStream sendBuffer = 
 		new ByteArrayOutputStream(OUTPUT_BUFFER_SIZE);	
 	private DataOutputStream outStream = new DataOutputStream(sendBuffer);
@@ -36,11 +39,11 @@ public class CombinedOutgoingQueue<M extends MessageValue>
 	
 	@Override
 	public void add(String toVertex, M msg) throws IOException {
-		if (!buffers.containsKey(toVertex)) {
+		if (!buffers.containsKey(toVertex) || buffers.get(toVertex) == null) {
 			M buffer = msgFactory.create();
 			buffer.copy(msg);
 			buffers.put(toVertex, buffer);
-			nonemptyBuffers++;
+			filled.addLast(toVertex);
 		} else {
 			// combine the two existing values (the buffered and the new one)
 			// and replace the buffered value with the combined one
@@ -50,36 +53,39 @@ public class CombinedOutgoingQueue<M extends MessageValue>
 		}
 	}
 
-	@Override
-	public void flush(WriteMessage w) throws IOException {
-		w.writeInt(buffers.size());
-		for (String dst : buffers.keySet()) {
+	protected void sendBulk(WriteMessage w, int count) throws IOException {
+		w.writeInt(count);
+		for (int i = 0; i < count; i++) {
+			String dst = filled.removeFirst();
 			M msg = buffers.get(dst);
 			outStream.writeUTF(dst);
 			msg.serialize(outStream);
+			buffers.put(dst, null);
 		}
-		// remove all messages
-		buffers.clear();
-		nonemptyBuffers = 0;
 		// this could be optimized by not copying the buffer
 		w.writeInt(sendBuffer.size());
 		w.writeArray(sendBuffer.toByteArray());
-		sendBuffer.reset();
+		sendBuffer.reset();		
+	}
+	
+	@Override
+	public void flush(WriteMessage w) throws IOException {
+		sendBulk(w, filled.size());
 	}
 
 	@Override
 	public void flushFilledBuffers(WriteMessage w) throws IOException {
-		// not called for now
+		sendBulk(w, COUNT_THRESHOLD / 2);
 	}
 
 	@Override
 	public boolean isEmpty() {
-		return nonemptyBuffers == 0;
+		return filled.size() == 0;
 	}
 
 	@Override
 	public boolean reachedThreshold() {
-		return false;
+		return filled.size() > COUNT_THRESHOLD;
 	}
 
 }
