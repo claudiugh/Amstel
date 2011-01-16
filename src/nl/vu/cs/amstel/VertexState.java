@@ -1,25 +1,25 @@
 package nl.vu.cs.amstel;
 
-import ibis.ipl.ReadMessage;
-import ibis.ipl.WriteMessage;
-
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 
+import nl.vu.cs.amstel.graph.VertexValueFactory;
 import nl.vu.cs.amstel.user.MessageValue;
 
-public class VertexState<M extends MessageValue> {
+public class VertexState<V extends Value, M extends MessageValue> {
 
 	public static final int LOCAL_INBOX_SIZE = 512;
 	
 	private int index;
 	private String vid;
 	private String[] edges;
-	private int value;
+	private V value;
 	
 	public VertexState() {
 	}
 	
-	public VertexState(String vid, String[] edges, int value) {
+	public VertexState(String vid, String[] edges, V value) {
 		this.vid = VertexIdStorage.get(vid);
 		this.edges = edges;
 		this.value = value;
@@ -29,22 +29,24 @@ public class VertexState<M extends MessageValue> {
 		}
 	}
 	
-	public void serialize(WriteMessage msg) throws IOException {
-		msg.writeString(vid);
-		msg.writeInt(value);
-		msg.writeInt(edges.length);
+	public void serialize(DataOutputStream out) throws IOException {
+		out.writeUTF(vid);
+		value.serialize(out);
+		out.writeInt(edges.length);
 		for (String e : edges) {
-			msg.writeString(e);
+			out.writeUTF(e);
 		}
 	}
 	
-	public void deserialize(ReadMessage msg) throws IOException {
-		vid = VertexIdStorage.get(msg.readString());
-		value = msg.readInt();
-		int edgesNo = msg.readInt();
+	public void deserialize(DataInputStream in, 
+			VertexValueFactory<V> valuesFactory) throws IOException {
+		vid = VertexIdStorage.get(in.readUTF());
+		value = valuesFactory.create();
+		value.deserialize(in);
+		int edgesNo = in.readInt();
 		edges = new String[edgesNo];
 		for (int i = 0; i < edgesNo; i++) {
-			edges[i] = VertexIdStorage.get(msg.readString());
+			edges[i] = VertexIdStorage.get(in.readUTF());
 		}
 	}
 
@@ -60,12 +62,8 @@ public class VertexState<M extends MessageValue> {
 		return index;
 	}
 	
-	public int getValue() {
+	public V getValue() {
 		return value;
-	}
-	
-	public void setValue(int value) {
-		this.value = value;
 	}
 	
 	public String[] getOutEdges() {

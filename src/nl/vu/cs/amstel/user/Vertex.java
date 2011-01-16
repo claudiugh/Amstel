@@ -4,17 +4,18 @@ import java.io.IOException;
 
 import org.apache.log4j.Logger;
 
+import nl.vu.cs.amstel.Value;
 import nl.vu.cs.amstel.VertexState;
 import nl.vu.cs.amstel.WorkerState;
 
-public abstract class Vertex<M extends MessageValue> {
+public abstract class Vertex<V extends Value, M extends MessageValue> {
 
 	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	
-	private VertexState<M> state = null;
+	private VertexState<V, M> state = null;
 	private WorkerState<M> workerState = null;
 	
-	public void setState(VertexState<M> state) {
+	public void setState(VertexState<V, M> state) {
 		this.state = state;
 	}
 	
@@ -34,12 +35,8 @@ public abstract class Vertex<M extends MessageValue> {
 		return workerState.msg;
 	}
 	
-	public int getValue() {
+	public V getValue() {
 		return state.getValue();
-	}
-	
-	public void setValue(int value) {
-		state.setValue(value);
 	}
 	
 	public void voteToHalt() {

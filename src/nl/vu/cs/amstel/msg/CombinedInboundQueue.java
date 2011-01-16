@@ -21,7 +21,7 @@ public class CombinedInboundQueue<M extends MessageValue>
 	
 	protected MessageFactory<M> msgFactory;
 	protected Combiner<M> combiner;
-	protected Map<String, VertexState<M>> vertices;
+	protected Map<String, VertexState<?, M>> vertices;
 	
 	private M[] inbox;
 	private M[] localInbox;
@@ -30,7 +30,7 @@ public class CombinedInboundQueue<M extends MessageValue>
 	
 	@SuppressWarnings("unchecked")
 	public CombinedInboundQueue(int size, MessageFactory<M> msgFactory,
-			Map<String, VertexState<M>> vertices, M[] localInbox) {
+			Map<String, VertexState<?, M>> vertices, M[] localInbox) {
 		this.msgFactory = msgFactory;
 		this.combiner = msgFactory.createCombiner();
 		this.m = msgFactory.create();

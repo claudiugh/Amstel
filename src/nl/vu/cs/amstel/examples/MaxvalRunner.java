@@ -3,6 +3,7 @@ package nl.vu.cs.amstel.examples;
 import nl.vu.cs.amstel.Node;
 import nl.vu.cs.amstel.graph.GraphInput;
 import nl.vu.cs.amstel.user.IntMessage;
+import nl.vu.cs.amstel.user.IntValue;
 import nl.vu.cs.amstel.user.MaxIntCombiner;
 
 public class MaxvalRunner {
@@ -32,8 +33,9 @@ public class MaxvalRunner {
 			GraphInput.init(vertexes, edges);
 		}
 		
-		Node<IntMessage> node = new Node<IntMessage>(nodes, MaxvalVertex.class,
-				IntMessage.class);
+		Node<IntValue, IntMessage> node = 
+			new Node<IntValue, IntMessage>(nodes, MaxvalVertex.class, 
+					IntValue.class, IntMessage.class);
 		node.setCombiner(MaxIntCombiner.class);
 		node.run();
 	}

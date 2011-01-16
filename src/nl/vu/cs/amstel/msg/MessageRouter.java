@@ -1,5 +1,7 @@
 package nl.vu.cs.amstel.msg;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -10,6 +12,7 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 
 import nl.vu.cs.amstel.Node;
+import nl.vu.cs.amstel.Value;
 import nl.vu.cs.amstel.VertexState;
 import nl.vu.cs.amstel.user.MessageValue;
 
@@ -18,7 +21,7 @@ import ibis.ipl.IbisIdentifier;
 import ibis.ipl.SendPort;
 import ibis.ipl.WriteMessage;
 
-public class MessageRouter<M extends MessageValue> {
+public class MessageRouter<V extends Value, M extends MessageValue> {
 
 	protected static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	
@@ -26,8 +29,7 @@ public class MessageRouter<M extends MessageValue> {
 	protected MessageFactory<M> msgFactory;
 	
 	private IbisIdentifier[] partitions;
-	private Map<String, VertexState<M>> vertices;
-	
+	private Map<String, VertexState<V, M>> vertices;
 	
 	// since we use only the local delivery feature, the inbox doesn't 
 	// need to be changed every super-step if the local inbox is common.
@@ -44,7 +46,7 @@ public class MessageRouter<M extends MessageValue> {
 		Collections.synchronizedSet(new HashSet<IbisIdentifier>());
 	
 	public MessageRouter(Ibis ibis, IbisIdentifier[] partitions, 
-			Map<String, VertexState<M>> vertices, 
+			Map<String, VertexState<V, M>> vertices, 
 			MessageFactory<M> msgFactory) {
 		this.ibis = ibis;
 		this.partitions = partitions;
@@ -107,13 +109,17 @@ public class MessageRouter<M extends MessageValue> {
 		return senders.get(worker);
 	}
 	
-	public void send(VertexState<M> vertex) throws IOException {
+	public void send(VertexState<?, M> vertex) throws IOException {
 		IbisIdentifier owner = getOwner(vertex.getID());
 		SendPort sender = getSender(owner);
 		synchronized(sender) {
 			WriteMessage w = sender.newMessage();
 			w.writeInt(MessageReceiver.INPUT_MSG);
-			vertex.serialize(w);
+			ByteArrayOutputStream buffer = new ByteArrayOutputStream(128);
+			DataOutputStream outStream = new DataOutputStream(buffer);
+			vertex.serialize(outStream);
+			w.writeInt(buffer.size());
+			w.writeArray(buffer.toByteArray());
 			w.finish();
 		}
 		activateWorker(owner);

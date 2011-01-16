@@ -10,7 +10,7 @@ import ibis.ipl.IbisFactory;
 import ibis.ipl.IbisIdentifier;
 import ibis.ipl.PortType;
 
-public class Node<M extends MessageValue> {
+public class Node<V extends Value, M extends MessageValue> {
 	
     public static PortType W2M_PORT = 
     	new PortType(PortType.COMMUNICATION_RELIABLE, 
@@ -30,9 +30,10 @@ public class Node<M extends MessageValue> {
             IbisCapabilities.ELECTIONS_STRICT);	
 	
     private Ibis ibis;
-    private AmstelNode<M> node;
+    private AmstelNode<V, M> node;
     
-    public Node(int nodes, Class<? extends Vertex<M>> vertexClass, 
+    public Node(int nodes, Class<? extends Vertex<V, M>> vertexClass,
+    		Class<V> vertexValueClass,
 			Class<M> messageClass) throws Exception {
     	ibis = IbisFactory.createIbis(ibisCapabilities, null, 
 				W2M_PORT, M2W_PORT, W2W_PORT);		 
@@ -41,9 +42,10 @@ public class Node<M extends MessageValue> {
     	if (master.equals(ibis.identifier())) {
     		// the number of workers is the total number of nodes excluding the
     		// the master node
-    		node = new Master<M>(ibis, nodes - 1);
+    		node = new Master<V, M>(ibis, nodes - 1);
 	    } else {
-	    	node = new Worker<M>(ibis, master, vertexClass, messageClass);
+	    	node = new Worker<V, M>(ibis, master, vertexClass, 
+	    			vertexValueClass, messageClass);
 	    }
     }
     

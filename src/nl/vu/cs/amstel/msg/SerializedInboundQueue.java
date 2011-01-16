@@ -13,7 +13,7 @@ public class SerializedInboundQueue<M extends MessageValue>
 	implements InboundQueue<M> {
 
 	// this is for resolving vertex id (String) to internal id (int)
-	protected Map<String, VertexState<M>> vertices;
+	protected Map<String, VertexState<?, M>> vertices;
 	
 	private List<byte[]>[] inbox;
 	private MessageOutputBuffer<M>[] localInbox;
@@ -21,7 +21,7 @@ public class SerializedInboundQueue<M extends MessageValue>
 	
 	@SuppressWarnings("unchecked")
 	public SerializedInboundQueue(int size,
-			Map<String, VertexState<M>> vertices,
+			Map<String, VertexState<?, M>> vertices,
 			MessageOutputBuffer[] localInbox,
 			MessageIterator<M> msgIterator) {
 		this.vertices = vertices;

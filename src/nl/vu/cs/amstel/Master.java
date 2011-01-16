@@ -17,7 +17,7 @@ import ibis.ipl.ReceivePort;
 import ibis.ipl.SendPort;
 import ibis.ipl.WriteMessage;
 
-public class Master<M extends MessageValue> implements AmstelNode<M> {
+public class Master<V, M extends MessageValue> implements AmstelNode<V, M> {
 
 	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel.master");
 	

@@ -9,6 +9,7 @@ import org.apache.log4j.Logger;
 
 import nl.vu.cs.amstel.graph.GraphInput;
 import nl.vu.cs.amstel.graph.InputPartition;
+import nl.vu.cs.amstel.graph.VertexValueFactory;
 import nl.vu.cs.amstel.msg.CombinedInboundQueue;
 import nl.vu.cs.amstel.msg.InboundQueue;
 import nl.vu.cs.amstel.msg.MessageFactory;
@@ -28,15 +29,16 @@ import ibis.ipl.ReceivePort;
 import ibis.ipl.SendPort;
 import ibis.ipl.WriteMessage;
 
-public class Worker<M extends MessageValue> implements AmstelNode<M> {
+public class Worker<V extends Value, M extends MessageValue> implements AmstelNode<V, M> {
 
 	private static final int LOCAL_INBOX_SIZE = 512;
 	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	
 	// for instantiation of user provided classes
-	private Class<? extends Vertex<M>> vertexClass;
+	private Class<? extends Vertex<V, M>> vertexClass;
 	private MessageFactory<M> messageFactory;
-
+	private VertexValueFactory<V> valuesFactory;
+	
 	private Ibis ibis;
 	private IbisIdentifier master;
 	private SendPort masterSender;
@@ -52,15 +54,15 @@ public class Worker<M extends MessageValue> implements AmstelNode<M> {
 		new HashMap<Integer, String>();
 	private boolean[] active;
 	
-	private Map<String, VertexState<M>> vertices = 
-		new HashMap<String, VertexState<M>>();
+	private Map<String, VertexState<V, M>> vertices = 
+		new HashMap<String, VertexState<V, M>>();
 	// messages in-boxes
 	private InboundQueue<M> inbox;
 	private InboundQueue<M> futureInbox;
 	
 	// messaging entities
-	private MessageReceiver<M> messageReceiver;
-	private MessageRouter<M> messageRouter;
+	private MessageReceiver<V, M> messageReceiver;
+	private MessageRouter<V, M> messageRouter;
 	
 	// state of the computation
 	private WorkerState<M> state;
@@ -82,7 +84,7 @@ public class Worker<M extends MessageValue> implements AmstelNode<M> {
 		r.finish();
 	}
 	
-	private void addVertex(VertexState<M> vertex) {
+	private void addVertex(VertexState<V, M> vertex) {
 		crtIndex++;
 		vertex.setIndex(crtIndex);
 		vertices.put(vertex.getID(), vertex);
@@ -93,8 +95,10 @@ public class Worker<M extends MessageValue> implements AmstelNode<M> {
 		Map<String, String[]> inputVertexes = 
 			GraphInput.readVertexes(inputPartition);
 		for (String vertex : inputVertexes.keySet()) {
-			VertexState<M> state = new VertexState<M>(vertex, 
-				inputVertexes.get(vertex), GraphInput.readValue(vertex));
+			int value = GraphInput.readValue(vertex);
+			V vertexValue = valuesFactory.create(value);
+			VertexState<V, M> state = new VertexState<V, M>(vertex, 
+				inputVertexes.get(vertex), vertexValue);
 			if (messageRouter.getOwner(vertex).equals(ibis.identifier())) {
 				// this vertex belongs to me
 				addVertex(state);
@@ -105,7 +109,7 @@ public class Worker<M extends MessageValue> implements AmstelNode<M> {
 	}
 	
 	private void loadReceivedInput() {
-		for (VertexState<M> vertex : messageReceiver.getReceivedVertexes()) {
+		for (VertexState<V, M> vertex : messageReceiver.getReceivedVertexes()) {
 			addVertex(vertex);
 		}
 	}
@@ -150,9 +154,10 @@ public class Worker<M extends MessageValue> implements AmstelNode<M> {
 		receiver = ibis.createReceivePort(Node.W2W_PORT, "worker");
 		receiver.enableConnections();
 		// this is a thread that only listens for incoming messages
-		messageRouter = new MessageRouter<M>(ibis, partitions, vertices,
+		messageRouter = new MessageRouter<V, M>(ibis, partitions, vertices,
 				messageFactory);
-		messageReceiver = new MessageReceiver<M>(receiver, messageRouter);
+		messageReceiver = new MessageReceiver<V, M>(receiver, messageRouter, 
+				valuesFactory);
 		messageReceiver.start();
 		state = new WorkerState<M>(messageRouter);
 	}
@@ -168,12 +173,12 @@ public class Worker<M extends MessageValue> implements AmstelNode<M> {
 		}
 	}
 	
-	private void computeVertexes(Vertex<M> v, MessageIterator<M> msgIterator) 
+	private void computeVertexes(Vertex<V, M> v, MessageIterator<M> msgIterator) 
 			throws IOException {
 		int msgs = 0;
 		for (int i = 0; i < active.length; i++) {
 			if (inbox.hasMessages(i) || active[i]) {
-				VertexState<M> state = vertices.get(idToVertex.get(i));
+				VertexState<V, M> state = vertices.get(idToVertex.get(i));
 				v.setState(state);
 				// we consider the vertex as active
 				active[i] = true;
@@ -225,7 +230,7 @@ public class Worker<M extends MessageValue> implements AmstelNode<M> {
 		state.activeVertexes = vertices.size();
 		state.msg = messageFactory.create();
 		// instantiate the vertex handler and the message iterator 
-		Vertex<M> v;
+		Vertex<V, M> v;
 		MessageIterator<M> msgIterator =
 			new MessageIterator<M>(messageFactory.create());
 		try {
@@ -258,6 +263,7 @@ public class Worker<M extends MessageValue> implements AmstelNode<M> {
 		}
 		
 		// check values
+		/*
 		int max = 0;
 		for (String vertex : vertices.keySet()) {
 			int value = vertices.get(vertex).getValue();
@@ -266,6 +272,7 @@ public class Worker<M extends MessageValue> implements AmstelNode<M> {
 			}
 		}
 		logger.info("Max value found: " + max);
+		*/
 		
 		// close connections
 		closeWorkerConnections();
@@ -276,7 +283,8 @@ public class Worker<M extends MessageValue> implements AmstelNode<M> {
 	}
 	
 	public Worker(Ibis ibis, IbisIdentifier master, 
-			Class<? extends Vertex<M>> vertexClass,
+			Class<? extends Vertex<V, M>> vertexClass,
+			Class<V> vertexValueClass,
 			Class<M> messageClass)
 		throws IOException, InterruptedException {
 		// setup
@@ -284,6 +292,7 @@ public class Worker<M extends MessageValue> implements AmstelNode<M> {
 		this.master = master;
 		this.vertexClass = vertexClass;
 		messageFactory = new MessageFactory<M>(messageClass);
+		valuesFactory = new VertexValueFactory<V>(vertexValueClass);
 		masterSender = ibis.createSendPort(Node.W2M_PORT);
 		masterSender.connect(master, "w2m");
 		masterReceiver = ibis.createReceivePort(Node.M2W_PORT, "m2w");
