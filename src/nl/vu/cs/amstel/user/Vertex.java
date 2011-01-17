@@ -4,18 +4,19 @@ import java.io.IOException;
 
 import org.apache.log4j.Logger;
 
-import nl.vu.cs.amstel.Value;
-import nl.vu.cs.amstel.VertexState;
 import nl.vu.cs.amstel.WorkerState;
+import nl.vu.cs.amstel.graph.OutEdgeIterator;
+import nl.vu.cs.amstel.graph.VertexState;
 
-public abstract class Vertex<V extends Value, M extends MessageValue> {
+public abstract class Vertex<V extends Value, E extends Value,
+		M extends MessageValue> {
 
 	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	
-	private VertexState<V, M> state = null;
+	private VertexState<V, E, M> state = null;
 	private WorkerState<M> workerState = null;
 	
-	public void setState(VertexState<V, M> state) {
+	public void setState(VertexState<V, E, M> state) {
 		this.state = state;
 	}
 	
@@ -45,6 +46,10 @@ public abstract class Vertex<V extends Value, M extends MessageValue> {
 	
 	public String[] getOutEdges() {
 		return state.getOutEdges();
+	}
+	
+	public OutEdgeIterator<E> getOutEdgeIterator() {
+		return null;
 	}
 	
 	public void send(String toVertex, M m) {

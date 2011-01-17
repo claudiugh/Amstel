@@ -4,7 +4,7 @@ import nl.vu.cs.amstel.user.IntMessage;
 import nl.vu.cs.amstel.user.IntValue;
 import nl.vu.cs.amstel.user.Vertex;
 
-public class MaxvalVertex extends Vertex<IntValue, IntMessage> {
+public class MaxvalVertex extends Vertex<IntValue, IntValue, IntMessage> {
 
 	public void compute(Iterable<IntMessage> messages) {
 		IntValue max = getValue();

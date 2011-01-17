@@ -33,9 +33,9 @@ public class MaxvalRunner {
 			GraphInput.init(vertexes, edges);
 		}
 		
-		Node<IntValue, IntMessage> node = 
-			new Node<IntValue, IntMessage>(nodes, MaxvalVertex.class, 
-					IntValue.class, IntMessage.class);
+		Node<IntValue, IntValue, IntMessage> node = 
+			new Node<IntValue, IntValue, IntMessage>(nodes, MaxvalVertex.class, 
+					IntValue.class, IntValue.class, IntMessage.class);
 		node.setCombiner(MaxIntCombiner.class);
 		node.run();
 	}

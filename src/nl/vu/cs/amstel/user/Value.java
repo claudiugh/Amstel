@@ -1,4 +1,4 @@
-package nl.vu.cs.amstel;
+package nl.vu.cs.amstel.user;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;

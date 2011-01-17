@@ -1,28 +1,33 @@
-package nl.vu.cs.amstel;
+package nl.vu.cs.amstel.graph;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Array;
 
-import nl.vu.cs.amstel.graph.VertexValueFactory;
+import nl.vu.cs.amstel.VertexIdStorage;
 import nl.vu.cs.amstel.user.MessageValue;
+import nl.vu.cs.amstel.user.Value;
 
-public class VertexState<V extends Value, M extends MessageValue> {
+public class VertexState<V extends Value, E extends Value,
+		M extends MessageValue> {
 
 	public static final int LOCAL_INBOX_SIZE = 512;
 	
 	private int index;
 	private String vid;
 	private String[] edges;
+	private E[] edgeValues;
 	private V value;
 	
 	public VertexState() {
 	}
 	
-	public VertexState(String vid, String[] edges, V value) {
+	public VertexState(String vid, V value, String[] edges, E[] edgeValues) {
 		this.vid = VertexIdStorage.get(vid);
 		this.edges = edges;
 		this.value = value;
+		this.edgeValues = edgeValues;
 		
 		for (int i = 0; i < edges.length; i++) {
 			edges[i] = VertexIdStorage.get(edges[i]);
@@ -33,20 +38,26 @@ public class VertexState<V extends Value, M extends MessageValue> {
 		out.writeUTF(vid);
 		value.serialize(out);
 		out.writeInt(edges.length);
-		for (String e : edges) {
-			out.writeUTF(e);
+		for (int i = 0; i < edges.length; i++) {
+			out.writeUTF(edges[i]);
+			edgeValues[i].serialize(out);
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
 	public void deserialize(DataInputStream in, 
-			VertexValueFactory<V> valuesFactory) throws IOException {
+			VertexFactory<V, E> vertexFactory) throws IOException {
 		vid = VertexIdStorage.get(in.readUTF());
-		value = valuesFactory.create();
+		value = vertexFactory.createValue();
 		value.deserialize(in);
 		int edgesNo = in.readInt();
 		edges = new String[edgesNo];
+		edgeValues = (E[]) Array.newInstance(vertexFactory.edgeValueClass, 
+				edgesNo);
 		for (int i = 0; i < edgesNo; i++) {
 			edges[i] = VertexIdStorage.get(in.readUTF());
+			edgeValues[i] = vertexFactory.createEdgeValue();
+			edgeValues[i].deserialize(in);
 		}
 	}
 

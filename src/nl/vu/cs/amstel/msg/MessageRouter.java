@@ -12,16 +12,17 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 
 import nl.vu.cs.amstel.Node;
-import nl.vu.cs.amstel.Value;
-import nl.vu.cs.amstel.VertexState;
+import nl.vu.cs.amstel.graph.VertexState;
 import nl.vu.cs.amstel.user.MessageValue;
+import nl.vu.cs.amstel.user.Value;
 
 import ibis.ipl.Ibis;
 import ibis.ipl.IbisIdentifier;
 import ibis.ipl.SendPort;
 import ibis.ipl.WriteMessage;
 
-public class MessageRouter<V extends Value, M extends MessageValue> {
+public class MessageRouter<V extends Value, E extends Value,
+		M extends MessageValue> {
 
 	protected static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	
@@ -29,7 +30,7 @@ public class MessageRouter<V extends Value, M extends MessageValue> {
 	protected MessageFactory<M> msgFactory;
 	
 	private IbisIdentifier[] partitions;
-	private Map<String, VertexState<V, M>> vertices;
+	private Map<String, VertexState<V, E, M>> vertices;
 	
 	// since we use only the local delivery feature, the inbox doesn't 
 	// need to be changed every super-step if the local inbox is common.
@@ -46,7 +47,7 @@ public class MessageRouter<V extends Value, M extends MessageValue> {
 		Collections.synchronizedSet(new HashSet<IbisIdentifier>());
 	
 	public MessageRouter(Ibis ibis, IbisIdentifier[] partitions, 
-			Map<String, VertexState<V, M>> vertices, 
+			Map<String, VertexState<V, E, M>> vertices, 
 			MessageFactory<M> msgFactory) {
 		this.ibis = ibis;
 		this.partitions = partitions;
@@ -109,7 +110,7 @@ public class MessageRouter<V extends Value, M extends MessageValue> {
 		return senders.get(worker);
 	}
 	
-	public void send(VertexState<?, M> vertex) throws IOException {
+	public void send(VertexState<V, E, M> vertex) throws IOException {
 		IbisIdentifier owner = getOwner(vertex.getID());
 		SendPort sender = getSender(owner);
 		synchronized(sender) {

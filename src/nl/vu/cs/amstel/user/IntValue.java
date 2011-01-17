@@ -4,7 +4,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-import nl.vu.cs.amstel.Value;
 
 public class IntValue implements Value {
 	public int value = 0;

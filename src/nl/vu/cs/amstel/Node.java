@@ -2,6 +2,7 @@ package nl.vu.cs.amstel;
 
 import nl.vu.cs.amstel.user.Combiner;
 import nl.vu.cs.amstel.user.MessageValue;
+import nl.vu.cs.amstel.user.Value;
 import nl.vu.cs.amstel.user.Vertex;
 
 import ibis.ipl.Ibis;
@@ -10,7 +11,7 @@ import ibis.ipl.IbisFactory;
 import ibis.ipl.IbisIdentifier;
 import ibis.ipl.PortType;
 
-public class Node<V extends Value, M extends MessageValue> {
+public class Node<V extends Value, E extends Value, M extends MessageValue> {
 	
     public static PortType W2M_PORT = 
     	new PortType(PortType.COMMUNICATION_RELIABLE, 
@@ -32,8 +33,9 @@ public class Node<V extends Value, M extends MessageValue> {
     private Ibis ibis;
     private AmstelNode<V, M> node;
     
-    public Node(int nodes, Class<? extends Vertex<V, M>> vertexClass,
+    public Node(int nodes, Class<? extends Vertex<V, E, M>> vertexClass,
     		Class<V> vertexValueClass,
+    		Class<E> edgeValueClass,
 			Class<M> messageClass) throws Exception {
     	ibis = IbisFactory.createIbis(ibisCapabilities, null, 
 				W2M_PORT, M2W_PORT, W2W_PORT);		 
@@ -44,8 +46,8 @@ public class Node<V extends Value, M extends MessageValue> {
     		// the master node
     		node = new Master<V, M>(ibis, nodes - 1);
 	    } else {
-	    	node = new Worker<V, M>(ibis, master, vertexClass, 
-	    			vertexValueClass, messageClass);
+	    	node = new Worker<V, E, M>(ibis, master, vertexClass, 
+	    			vertexValueClass, edgeValueClass, messageClass);
 	    }
     }
     

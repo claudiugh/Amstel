@@ -8,10 +8,10 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
-import nl.vu.cs.amstel.Value;
-import nl.vu.cs.amstel.VertexState;
-import nl.vu.cs.amstel.graph.VertexValueFactory;
+import nl.vu.cs.amstel.graph.VertexFactory;
+import nl.vu.cs.amstel.graph.VertexState;
 import nl.vu.cs.amstel.user.MessageValue;
+import nl.vu.cs.amstel.user.Value;
 
 import ibis.ipl.ConnectionClosedException;
 import ibis.ipl.ReadMessage;
@@ -19,8 +19,8 @@ import ibis.ipl.ReceivePort;
 import ibis.ipl.SendPort;
 import ibis.ipl.WriteMessage;
 
-public class MessageReceiver<V extends Value, M extends MessageValue> 
-		extends Thread {
+public class MessageReceiver<V extends Value, E extends Value, 
+		M extends MessageValue> extends Thread {
 
 	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	
@@ -30,22 +30,22 @@ public class MessageReceiver<V extends Value, M extends MessageValue>
 	public static final int FLUSH_ACK_MSG = 0x400;
 	
 	protected ReceivePort receiver;
-	protected MessageRouter<V, M> router;
-	protected VertexValueFactory<V> valuesFactory;
+	protected MessageRouter<V, E, M> router;
+	protected VertexFactory<V, E> valuesFactory;
 	
 	private InboundQueue<M> inbox = null;
-	private List<VertexState<V, M>> inputVertexes = 
-		new ArrayList<VertexState<V, M>>();
+	private List<VertexState<V, E, M>> inputVertexes = 
+		new ArrayList<VertexState<V, E, M>>();
 	
-	public MessageReceiver(ReceivePort receiver, MessageRouter<V, M> router,
-			VertexValueFactory<V> valuesFactory) {
+	public MessageReceiver(ReceivePort receiver, MessageRouter<V, E, M> router,
+			VertexFactory<V, E> valuesFactory) {
 		this.receiver = receiver;
 		this.router = router;
 		this.valuesFactory = valuesFactory;
 	}
-	
+
 	private void inputMessage(ReadMessage msg) throws IOException {
-		VertexState<V, M> vertex = new VertexState<V, M>();
+		VertexState<V, E, M> vertex = new VertexState<V, E, M>();
 		int bufferSize = msg.readInt();
 		byte[] buffer = new byte[bufferSize];
 		msg.readArray(buffer);
@@ -73,7 +73,7 @@ public class MessageReceiver<V extends Value, M extends MessageValue>
 		this.inbox = inbox;
 	}
 	
-	public List<VertexState<V, M>> getReceivedVertexes() {
+	public List<VertexState<V, E, M>> getReceivedVertexes() {
 		return inputVertexes;
 	}
 	
