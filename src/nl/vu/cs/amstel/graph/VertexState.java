@@ -34,6 +34,10 @@ public class VertexState<V extends Value, E extends Value,
 		}
 	}
 	
+	public void setEdgeIterator(ArrayOutEdgeIterator<E> edgeIterator) {
+		edgeIterator.reset(edges, edgeValues);
+	}
+	
 	public void serialize(DataOutputStream out) throws IOException {
 		out.writeUTF(vid);
 		value.serialize(out);

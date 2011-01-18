@@ -7,6 +7,7 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+import nl.vu.cs.amstel.graph.ArrayOutEdgeIterator;
 import nl.vu.cs.amstel.graph.GraphInput;
 import nl.vu.cs.amstel.graph.InputPartition;
 import nl.vu.cs.amstel.graph.VertexFactory;
@@ -40,7 +41,7 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 	// for instantiation of user provided classes
 	private Class<? extends Vertex<V, E, M>> vertexClass;
 	private MessageFactory<M> messageFactory;
-	private VertexFactory<V, E> valuesFactory; 
+	private VertexFactory<V, E> vertexFactory; 
 	
 	private Ibis ibis;
 	private IbisIdentifier master;
@@ -68,7 +69,7 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 	private MessageRouter<V, E, M> messageRouter;
 	
 	// state of the computation
-	private WorkerState<M> state;
+	private WorkerState<E, M> state;
 	
 	@SuppressWarnings("unchecked")
 	private void register() throws IOException {
@@ -100,12 +101,12 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 			GraphInput.readEdges(inputPartition);
 		for (String vertex : inputVertexes.keySet()) {
 			int value = GraphInput.readValue(vertex);
-			V vertexValue = valuesFactory.createValue(value);
+			V vertexValue = vertexFactory.createValue(value);
 			String[][] inputEdges = inputVertexes.get(vertex);
 			E[] edgeValues = (E[]) Array.newInstance(
-					valuesFactory.edgeValueClass, inputEdges[1].length);
+					vertexFactory.edgeValueClass, inputEdges[1].length);
 			for (int i = 0; i < edgeValues.length; i++) {
-				edgeValues[i] = valuesFactory.createEdgeValue(inputEdges[1][i]);
+				edgeValues[i] = vertexFactory.createEdgeValue(inputEdges[1][i]);
 			}
 			VertexState<V, E, M> state = new VertexState<V, E, M>(vertex, 
 					vertexValue, inputEdges[0], edgeValues);
@@ -167,9 +168,9 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 		messageRouter = new MessageRouter<V, E, M>(ibis, partitions, vertices,
 				messageFactory);
 		messageReceiver = new MessageReceiver<V, E, M>(receiver, messageRouter, 
-				valuesFactory);
+				vertexFactory);
 		messageReceiver.start();
-		state = new WorkerState<M>(messageRouter);
+		state = new WorkerState<E, M>(messageRouter);
 	}
 	
 	private void closeWorkerConnections() throws IOException {
@@ -188,10 +189,12 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 		int msgs = 0;
 		for (int i = 0; i < active.length; i++) {
 			if (inbox.hasMessages(i) || active[i]) {
-				VertexState<V, E, M> state = vertices.get(idToVertex.get(i));
-				v.setState(state);
+				VertexState<V, E, M> vertexState = 
+					vertices.get(idToVertex.get(i));
+				v.setState(vertexState);
 				// we consider the vertex as active
 				active[i] = true;
+				vertexState.setEdgeIterator(state.edgeIterator);
 				v.compute(inbox.getIterator(i));
 				// clear all messages
 				inbox.clear(i);
@@ -239,6 +242,7 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 		
 		state.activeVertexes = vertices.size();
 		state.msg = messageFactory.create();
+		state.edgeIterator = new ArrayOutEdgeIterator<E>();
 		// instantiate the vertex handler and the message iterator 
 		Vertex<V, E, M> v;
 		MessageIterator<M> msgIterator =
@@ -303,7 +307,7 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 		this.master = master;
 		this.vertexClass = vertexClass;
 		messageFactory = new MessageFactory<M>(messageClass);
-		valuesFactory = new VertexFactory<V, E>(vertexValueClass, 
+		vertexFactory = new VertexFactory<V, E>(vertexValueClass, 
 				edgeValueClass);
 		masterSender = ibis.createSendPort(Node.W2M_PORT);
 		masterSender.connect(master, "w2m");

@@ -14,13 +14,13 @@ public abstract class Vertex<V extends Value, E extends Value,
 	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	
 	private VertexState<V, E, M> state = null;
-	private WorkerState<M> workerState = null;
+	private WorkerState<E, M> workerState = null;
 	
 	public void setState(VertexState<V, E, M> state) {
 		this.state = state;
 	}
 	
-	public void setWorkerState(WorkerState<M> workerState) {
+	public void setWorkerState(WorkerState<E, M> workerState) {
 		this.workerState = workerState;
 	}
 	
@@ -44,12 +44,8 @@ public abstract class Vertex<V extends Value, E extends Value,
 		workerState.active[state.getIndex()] = false;
 	}
 	
-	public String[] getOutEdges() {
-		return state.getOutEdges();
-	}
-	
 	public OutEdgeIterator<E> getOutEdgeIterator() {
-		return null;
+		return workerState.edgeIterator;
 	}
 	
 	public void send(String toVertex, M m) {
@@ -62,8 +58,10 @@ public abstract class Vertex<V extends Value, E extends Value,
 	}
 	
 	public void sendToAll(M m) {
-		for (String v : getOutEdges()) {
-			send(v, m);
+		OutEdgeIterator<E> iter;
+		for (iter = getOutEdgeIterator(); iter.hasNext(); iter.next()) {
+			String vertex = iter.getEdgeTarget();
+			send(vertex, m);
 		}
 	}
 	
