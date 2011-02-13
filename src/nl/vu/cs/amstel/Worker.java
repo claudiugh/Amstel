@@ -103,10 +103,15 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 			int value = GraphInput.readValue(vertex);
 			V vertexValue = vertexFactory.createValue(value);
 			String[][] inputEdges = inputVertexes.get(vertex);
-			E[] edgeValues = (E[]) Array.newInstance(
-					vertexFactory.edgeValueClass, inputEdges[1].length);
-			for (int i = 0; i < edgeValues.length; i++) {
-				edgeValues[i] = vertexFactory.createEdgeValue(inputEdges[1][i]);
+			E[] edgeValues = null;
+			// in case we don't use the edge values, the edge values array 
+			// will remain null
+			if (!VertexFactory.hasNullEdgeValue()) {
+				edgeValues = (E[]) Array.newInstance(
+						vertexFactory.edgeValueClass, inputEdges[1].length);
+				for (int i = 0; i < edgeValues.length; i++) {
+					edgeValues[i] = vertexFactory.createEdgeValue(inputEdges[1][i]);
+				}
 			}
 			VertexState<V, E, M> state = new VertexState<V, E, M>(vertex, 
 					vertexValue, inputEdges[0], edgeValues);

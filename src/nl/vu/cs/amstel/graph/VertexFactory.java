@@ -2,11 +2,14 @@ package nl.vu.cs.amstel.graph;
 
 import java.lang.reflect.Constructor;
 
+import nl.vu.cs.amstel.user.NullValue;
+
 import org.apache.log4j.Logger;
 
 public class VertexFactory<V, E> {
 
 	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
+	private static boolean nullEdgeValues;
 	
 	public Class<V> vertexValueClass;
 	public Class<E> edgeValueClass;
@@ -14,6 +17,7 @@ public class VertexFactory<V, E> {
 	public VertexFactory(Class<V> vertexValueClass, Class<E> edgeValueClass) {
 		this.vertexValueClass = vertexValueClass;
 		this.edgeValueClass = edgeValueClass;
+		nullEdgeValues = edgeValueClass.equals(NullValue.class);
 	}
 	
 	public V createValue() {
@@ -67,5 +71,9 @@ public class VertexFactory<V, E> {
 			logger.error("Error instantiating edge value from String", e);
 		}
 		return null;
+	}
+	
+	public static boolean hasNullEdgeValue() {
+		return nullEdgeValues;
 	}
 }

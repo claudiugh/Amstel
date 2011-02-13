@@ -2,9 +2,10 @@ package nl.vu.cs.amstel.examples;
 
 import nl.vu.cs.amstel.user.IntMessage;
 import nl.vu.cs.amstel.user.IntValue;
+import nl.vu.cs.amstel.user.NullValue;
 import nl.vu.cs.amstel.user.Vertex;
 
-public class MaxvalVertex extends Vertex<IntValue, IntValue, IntMessage> {
+public class MaxvalVertex extends Vertex<IntValue, NullValue, IntMessage> {
 
 	public void compute(Iterable<IntMessage> messages) {
 		IntValue max = getValue();

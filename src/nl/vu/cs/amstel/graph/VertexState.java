@@ -7,6 +7,7 @@ import java.lang.reflect.Array;
 
 import nl.vu.cs.amstel.VertexIdStorage;
 import nl.vu.cs.amstel.user.MessageValue;
+import nl.vu.cs.amstel.user.NullValue;
 import nl.vu.cs.amstel.user.Value;
 
 public class VertexState<V extends Value, E extends Value,
@@ -44,7 +45,9 @@ public class VertexState<V extends Value, E extends Value,
 		out.writeInt(edges.length);
 		for (int i = 0; i < edges.length; i++) {
 			out.writeUTF(edges[i]);
-			edgeValues[i].serialize(out);
+			if (!VertexFactory.hasNullEdgeValue()) {
+				edgeValues[i].serialize(out);
+			}
 		}
 	}
 	
@@ -60,8 +63,10 @@ public class VertexState<V extends Value, E extends Value,
 				edgesNo);
 		for (int i = 0; i < edgesNo; i++) {
 			edges[i] = VertexIdStorage.get(in.readUTF());
-			edgeValues[i] = vertexFactory.createEdgeValue();
-			edgeValues[i].deserialize(in);
+			if (!VertexFactory.hasNullEdgeValue()) {
+				edgeValues[i] = vertexFactory.createEdgeValue();
+				edgeValues[i].deserialize(in);
+			}
 		}
 	}
 
