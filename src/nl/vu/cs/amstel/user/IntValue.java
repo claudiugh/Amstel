@@ -32,4 +32,8 @@ public class IntValue implements Value {
 	public void serialize(DataOutputStream out) throws IOException {
 		out.writeInt(value);
 	}
+	
+	public String toString() {
+		return "" + value;
+	}
 }

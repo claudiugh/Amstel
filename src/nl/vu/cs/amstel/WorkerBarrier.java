@@ -11,14 +11,17 @@ import ibis.ipl.WriteMessage;
 
 public class WorkerBarrier {
 
-	private Logger logger = Logger.getLogger("nl.vu.cs.amstel");
+	protected Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	
 	private SendPort sender;
 	private ReceivePort receiver;
+	private AggregatorStream aggStream;
 	
-	public WorkerBarrier(SendPort sender, ReceivePort receiver) {
+	public WorkerBarrier(SendPort sender, ReceivePort receiver, 
+			AggregatorStream aggStream) {
 		this.sender = sender;
 		this.receiver = receiver;
+		this.aggStream = aggStream;
 	}
 	
 	protected void waitRelease(ReadMessage r) throws IOException {
@@ -50,7 +53,7 @@ public class WorkerBarrier {
 		r.finish();
 		return superstep;
 	}
-	
+		
 	/**
 	 * blocks until every reached the barrier and the master ordered the release
 	 * it sends the number of active vertexes
@@ -61,10 +64,20 @@ public class WorkerBarrier {
 		WriteMessage w = sender.newMessage();
 		w.writeInt(MasterBarrier.BARRIER_ENTER);
 		w.writeInt(activeVertexes);
+		// send aggregators
+		byte[] aggBuffer = aggStream.pack();
+		w.writeInt(aggBuffer.length);
+		w.writeArray(aggBuffer);
 		w.finish();
 		// block until I get the release message
 		ReadMessage r = receiver.receive();
 		waitRelease(r);
+		// unpack aggregators
+		int bufferSize = r.readInt();
+		byte[] buffer = new byte[bufferSize];
+		r.readArray(buffer);
+		aggStream.unpackAndUpdate(buffer);
+		
 		r.finish();
 	}
 	

@@ -33,7 +33,7 @@ import ibis.ipl.SendPort;
 import ibis.ipl.WriteMessage;
 
 public class Worker<V extends Value, E extends Value, M extends MessageValue> 
-		implements AmstelNode<V, M> {
+		extends AmstelNode<V, M> {
 
 	private static final int LOCAL_INBOX_SIZE = 512;
 	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
@@ -175,7 +175,7 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 		messageReceiver = new MessageReceiver<V, E, M>(receiver, messageRouter, 
 				vertexFactory);
 		messageReceiver.start();
-		state = new WorkerState<E, M>(messageRouter);
+		state = new WorkerState<E, M>(messageRouter, aggregators);
 	}
 	
 	private void closeWorkerConnections() throws IOException {
@@ -226,6 +226,12 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 		futureInbox = tmp;
 	}
 	
+	private void resetAggregators() {
+		for (AggregatorState aggState : aggregators.values()) {
+			aggState.aggregator.reset();
+		}
+	}
+	
 	@Override
 	public void setCombiner(Class<? extends Combiner<M>> combinerClass) {
 		messageFactory.setCombinerClass(combinerClass);
@@ -260,6 +266,7 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 				messageReceiver.setInbox(futureInbox);
 				barrier.enter(state.activeVertexes);				
 				// compute phase
+				resetAggregators();
 				logger.info("Running superstep " + state.superstep);
 				computeVertexes(v, msgIterator);				
 				// send everything left in the buffers 
@@ -318,7 +325,8 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 		masterSender.connect(master, "w2m");
 		masterReceiver = ibis.createReceivePort(Node.M2W_PORT, "m2w");
 		masterReceiver.enableConnections();
-		barrier = new WorkerBarrier(masterSender, masterReceiver);
+		barrier = new WorkerBarrier(masterSender, masterReceiver, 
+			new AggregatorStream(aggregators));
 	}
 
 }

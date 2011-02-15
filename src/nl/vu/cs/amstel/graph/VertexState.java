@@ -7,7 +7,6 @@ import java.lang.reflect.Array;
 
 import nl.vu.cs.amstel.VertexIdStorage;
 import nl.vu.cs.amstel.user.MessageValue;
-import nl.vu.cs.amstel.user.NullValue;
 import nl.vu.cs.amstel.user.Value;
 
 public class VertexState<V extends Value, E extends Value,

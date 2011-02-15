@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.apache.log4j.Logger;
 
+import nl.vu.cs.amstel.AggregatorState;
 import nl.vu.cs.amstel.WorkerState;
 import nl.vu.cs.amstel.graph.OutEdgeIterator;
 import nl.vu.cs.amstel.graph.VertexState;
@@ -63,6 +64,35 @@ public abstract class Vertex<V extends Value, E extends Value,
 			String vertex = iter.getEdgeTarget();
 			send(vertex, m);
 		}
+	}
+	
+	/**
+	 * Output value for aggregating. Result will be available in the next
+	 * super-step.
+	 * 
+	 * @param key
+	 * @param value
+	 */
+	@SuppressWarnings("unchecked")
+	public void outputAggregate(String key, Value value) {
+		Aggregator aggregator = workerState.aggregators.get(key).aggregator;
+		if (aggregator.hasValue()) {
+			aggregator.combine(value);
+		} else {
+			aggregator.init(value);
+		}
+	}
+	
+	/**
+	 * read the aggregated value from the previous super-step, for the 
+	 * aggregator identified by the given key.
+	 * 
+	 * @param key
+	 * @return
+	 */
+	public Value readAggregate(String key) {
+		AggregatorState aggregatorState = workerState.aggregators.get(key);
+		return aggregatorState.currentValue;
 	}
 	
 	abstract public void compute(Iterable<M> messages);

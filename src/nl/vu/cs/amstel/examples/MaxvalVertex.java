@@ -7,13 +7,20 @@ import nl.vu.cs.amstel.user.Vertex;
 
 public class MaxvalVertex extends Vertex<IntValue, NullValue, IntMessage> {
 
+	private static boolean printed = false;
+	
 	public void compute(Iterable<IntMessage> messages) {
 		IntValue max = getValue();
 		IntMessage outMsg = newMessage();
 		if (getSuperstep() == 0) {
+			outputAggregate("MaxVertex", max);
 			outMsg.value = max.value;
 			sendToAll(outMsg);
 			return;
+		}
+		if (!printed && getSuperstep() == 1) {
+			System.out.println("MaxVertex value: " + readAggregate("MaxVertex"));
+			printed = true;
 		}
 		int localMax = max.value;
 		for (IntMessage m : messages) {

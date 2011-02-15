@@ -22,7 +22,7 @@ import ibis.ipl.WriteMessage;
 public class MessageReceiver<V extends Value, E extends Value, 
 		M extends MessageValue> extends Thread {
 
-	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
+	protected static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	
 	public static final int INPUT_MSG = 0x100;
 	public static final int COMPUTE_MSG = 0x200;

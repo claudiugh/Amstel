@@ -1,5 +1,6 @@
 package nl.vu.cs.amstel;
 
+import nl.vu.cs.amstel.user.Aggregator;
 import nl.vu.cs.amstel.user.Combiner;
 import nl.vu.cs.amstel.user.MessageValue;
 import nl.vu.cs.amstel.user.Value;
@@ -53,6 +54,10 @@ public class Node<V extends Value, E extends Value, M extends MessageValue> {
     
     public void setCombiner(Class<? extends Combiner<M>> combinerClass) {
     	node.setCombiner(combinerClass);
+    }
+    
+    public void addAggregator(Aggregator<? extends Value> aggregator) {
+    	node.addAggregator(aggregator);
     }
     
 	public void run() {

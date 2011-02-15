@@ -17,7 +17,7 @@ import ibis.ipl.ReceivePort;
 import ibis.ipl.SendPort;
 import ibis.ipl.WriteMessage;
 
-public class Master<V, M extends MessageValue> implements AmstelNode<V, M> {
+public class Master<V, M extends MessageValue> extends AmstelNode<V, M> {
 
 	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel.master");
 	
@@ -85,6 +85,28 @@ public class Master<V, M extends MessageValue> implements AmstelNode<V, M> {
 		// or at least for now...
 	}
 	
+	public void logSuperstepInfo(int activeVertices, int superstep) {
+		logger.info("Superstep " + superstep + ": "
+				+ activeVertices + " vertexes left");
+		for (AggregatorState aggState : aggregators.values()) {
+			if (aggState.aggregator.hasValue()) {
+				logger.info("Aggregator " + aggState.aggregator.getName() + ": "
+						+ aggState.aggregator.getValue());
+			}
+		}
+	}
+	
+	/**
+	 * reset the aggregators unless they are sticky
+	 */
+	private void manageAggregators() {
+		for (AggregatorState aggState : aggregators.values()) {
+			if (!aggState.aggregator.isSticky()) {
+				aggState.aggregator.reset();
+			}
+		}		
+	}
+	
 	public void run() throws Exception {
 		logger.info("Running for " + GraphInput.VERTEXES + " vertexes"
 				+ " and " + GraphInput.EDGES + " edges");
@@ -98,18 +120,19 @@ public class Master<V, M extends MessageValue> implements AmstelNode<V, M> {
 		barrier.await();
 		barrier.release(0);
 		// run the super-steps 
-		int superstep = 1;
-		int activeVertexes = 1;
-		while (activeVertexes > 0) {
-			activeVertexes = barrier.await();
-			if (activeVertexes == 0) {
+		int superstep = 0;
+		int activeVertices = 1;
+		while (activeVertices > 0) {
+			activeVertices = barrier.await();
+			logSuperstepInfo(activeVertices, superstep);
+			if (activeVertices == 0) {
 				// end of the algorithm
-				superstep = -1;
-			}
-			logger.info("Superstep " + superstep + ": "
-				+ activeVertexes + " vertexes left");
-			barrier.release(superstep);
+				barrier.release(-1);
+				break;
+			}			
 			superstep++;
+			barrier.release(superstep);
+			manageAggregators();
 		}
 		// compute running time
 		long runningTime = System.currentTimeMillis() - startTime;
@@ -125,7 +148,8 @@ public class Master<V, M extends MessageValue> implements AmstelNode<V, M> {
 		workers = new IbisIdentifier[workersNo];
 		receiver = ibis.createReceivePort(Node.W2M_PORT, "w2m");
 		sender = ibis.createSendPort(Node.M2W_PORT, "m2w");
-		barrier = new MasterBarrier(workersNo, sender, receiver);
+		barrier = new MasterBarrier(workersNo, sender, receiver, 
+			new AggregatorStream(aggregators));
 	}
 	
 }

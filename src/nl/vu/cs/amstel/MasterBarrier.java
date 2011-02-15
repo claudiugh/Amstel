@@ -11,7 +11,7 @@ import ibis.ipl.WriteMessage;
 
 public class MasterBarrier {
 
-	private Logger logger = Logger.getLogger("nl.vu.cs.amstel");
+	protected Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	
 	public static final int BARRIER_ENTER = 1;
 	public static final int BARRIER_ENTER_COOLDOWN = 2;
@@ -20,11 +20,14 @@ public class MasterBarrier {
 	private int members;
 	private SendPort sender;
 	private ReceivePort receiver;
+	private AggregatorStream aggStream;
 	
-	public MasterBarrier(int members, SendPort sender, ReceivePort receiver) {
+	public MasterBarrier(int members, SendPort sender, ReceivePort receiver,
+			AggregatorStream aggStream) {
 		this.members = members;
 		this.sender = sender;
 		this.receiver = receiver;
+		this.aggStream = aggStream;
 	}
 	
 	protected void awaitCooldown() throws IOException {
@@ -53,9 +56,21 @@ public class MasterBarrier {
 					+ "Expecting " + BARRIER_ENTER + ", got " + code);
 			}
 			activeVertexes += r.readInt();
+			// unpack aggregators
+			int bufferSize = r.readInt();
+			byte[] buffer = new byte[bufferSize];
+			r.readArray(buffer);
+			aggStream.unpackAndCombine(buffer);
 			r.finish();
 		}
-		release();
+		WriteMessage w = sender.newMessage();
+		w.writeInt(BARRIER_RELEASE);
+		// send aggregators
+		byte[] aggBuffer = aggStream.pack();
+		w.writeInt(aggBuffer.length);
+		w.writeArray(aggBuffer);
+		w.finish();
+		
 		// cool-down phase
 		awaitCooldown();
 		
@@ -64,14 +79,8 @@ public class MasterBarrier {
 		return activeVertexes;
 	}
 	
-	protected void release() throws IOException {
-		WriteMessage w = sender.newMessage();
-		w.writeInt(BARRIER_RELEASE);
-		w.finish();
-	}
-	
 	/**
-	 * Releases all the members from the barrier
+	 * Releases all members from the barrier
 	 * @throws IOException
 	 */
 	public void release(int superstep) throws IOException {
