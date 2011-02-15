@@ -30,7 +30,7 @@ public class MasterBarrier {
 		this.aggStream = aggStream;
 	}
 	
-	protected void awaitCooldown() throws IOException {
+	private void awaitCooldown() throws IOException {
 		for (int i = 0; i < members; i++) {
 			ReadMessage r = receiver.receive();
 			int code = r.readInt();
@@ -43,11 +43,10 @@ public class MasterBarrier {
 	}
 	
 	/**
-	 * blocks until all members enter in the barrier
+	 * general purpose synchronization
 	 * @throws IOException 
 	 */
-	public int await() throws IOException {
-		int activeVertexes = 0;
+	public void await() throws IOException {
 		for (int i = 0; i < members; i++) {
 			ReadMessage r = receiver.receive();
 			int code = r.readInt();
@@ -55,7 +54,30 @@ public class MasterBarrier {
 				logger.fatal("Incorrect barrier enter code. "
 					+ "Expecting " + BARRIER_ENTER + ", got " + code);
 			}
-			activeVertexes += r.readInt();
+			r.finish();
+		}		
+	}
+	
+	public void release() throws IOException {
+		WriteMessage w = sender.newMessage();
+		w.writeInt(BARRIER_RELEASE);
+		w.finish();
+	}
+	
+	/**
+	 * blocks until all members enter in the barrier
+	 * @throws IOException 
+	 */
+	public int awaitAndGetAggregators() throws IOException {
+		int activeVertices = 0;
+		for (int i = 0; i < members; i++) {
+			ReadMessage r = receiver.receive();
+			int code = r.readInt();
+			if (code != BARRIER_ENTER) {
+				logger.fatal("Incorrect barrier enter code. "
+					+ "Expecting " + BARRIER_ENTER + ", got " + code);
+			}
+			activeVertices += r.readInt();
 			// unpack aggregators
 			int bufferSize = r.readInt();
 			byte[] buffer = new byte[bufferSize];
@@ -63,8 +85,20 @@ public class MasterBarrier {
 			aggStream.unpackAndCombine(buffer);
 			r.finish();
 		}
+		return activeVertices;
+	}
+	
+	/**
+	 * This is a two-step release. Firstly it sends all the data (superstep,
+	 * aggregators) with the release. After that enters in the cool-down stage, releasing
+	 * for the second time.
+	 * 
+	 * @throws IOException
+	 */
+	public void releaseAndSendAggregators(int superstep) throws IOException {
 		WriteMessage w = sender.newMessage();
 		w.writeInt(BARRIER_RELEASE);
+		w.writeInt(superstep);
 		// send aggregators
 		byte[] aggBuffer = aggStream.pack();
 		w.writeInt(aggBuffer.length);
@@ -74,19 +108,7 @@ public class MasterBarrier {
 		// cool-down phase
 		awaitCooldown();
 		
-		// use the number of active vertexes to decide the state of the next
-		// super-step
-		return activeVertexes;
-	}
-	
-	/**
-	 * Releases all members from the barrier
-	 * @throws IOException
-	 */
-	public void release(int superstep) throws IOException {
-		WriteMessage w = sender.newMessage();
-		w.writeInt(BARRIER_RELEASE);
-		w.writeInt(superstep);
-		w.finish();
+		// release from cool-down
+		release();
 	}
 }

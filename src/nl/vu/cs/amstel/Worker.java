@@ -189,7 +189,7 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 		}
 	}
 	
-	private void computeVertexes(Vertex<V, E, M> v, MessageIterator<M> msgIterator) 
+	private void computeVertices(Vertex<V, E, M> v, MessageIterator<M> msgIterator) 
 			throws IOException {
 		int msgs = 0;
 		for (int i = 0; i < active.length; i++) {
@@ -210,7 +210,7 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 		}
 	}
 	
-	private int countActiveVertexes() {
+	private int countActiveVertices() {
 		int count = 0;
 		for (int i = 0; i < active.length; i++) {
 			if (futureInbox.hasMessages(i) || active[i]) {
@@ -245,13 +245,12 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 		messageRouter.flush();
 		// we synchronize here because we need to be sure that 
 		// all the input messages have been received
-		barrier.enter(1);
-		barrier.enterCooldown();
+		barrier.enter();
 		loadReceivedInput();
 		// initialize vertex arrays
 		initInboxes();
 		
-		state.activeVertexes = vertices.size();
+		state.activeVertices = vertices.size();
 		state.msg = messageFactory.create();
 		state.edgeIterator = new ArrayOutEdgeIterator<E>();
 		// instantiate the vertex handler and the message iterator 
@@ -264,22 +263,24 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 			// the computation iteration
 			while (state.superstep >= 0) {
 				messageReceiver.setInbox(futureInbox);
-				barrier.enter(state.activeVertexes);				
-				// compute phase
-				resetAggregators();
-				logger.info("Running superstep " + state.superstep);
-				computeVertexes(v, msgIterator);				
-				// send everything left in the buffers 
-				// and wait for acknowledgments
-				messageRouter.flush();
+				state.superstep = barrier.enterAndGetData(state.activeVertices);
+				if (state.superstep >= 0) {
+					// compute phase
+					resetAggregators();
+					logger.info("Running superstep " + state.superstep);
+					computeVertices(v, msgIterator);				
+					// send everything left in the buffers 
+					// and wait for acknowledgments
+					messageRouter.flush();					
+				}
 				
 				// cool-down phase of the super-step
 				// in this phase no one is sending/receiving message, so it's
 				// safe to switch the message in-boxes 
-				state.superstep = barrier.enterCooldown();
+				barrier.enterCooldown();
 				// the current in-box is supposed to be already processed,
 				// and it's going to be the futureInbox in the next super-step
-				state.activeVertexes = countActiveVertexes();
+				state.activeVertices = countActiveVertices();
 				swapInboxes();
 			}
 		} catch (InstantiationException e) {
@@ -287,19 +288,7 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 		} catch (IllegalAccessException e) {
 			e.printStackTrace();
 		}
-		
-		// check values
-		/*
-		int max = 0;
-		for (String vertex : vertices.keySet()) {
-			int value = vertices.get(vertex).getValue();
-			if (value > max) {
-				max = value;
-			}
-		}
-		logger.info("Max value found: " + max);
-		*/
-		
+				
 		// close connections
 		closeWorkerConnections();
 		// exit

@@ -42,24 +42,22 @@ public class WorkerBarrier {
 	 * @return the number of the super-step
 	 * 		   -1 if the algorithm is finished
 	 */
-	public int enterCooldown() throws IOException {
+	public void enterCooldown() throws IOException {
 		WriteMessage w = sender.newMessage();
 		w.writeInt(MasterBarrier.BARRIER_ENTER_COOLDOWN);
 		w.finish();
 		// wait for release
 		ReadMessage r = receiver.receive();
 		waitRelease(r);
-		int superstep = r.readInt();
 		r.finish();
-		return superstep;
 	}
-		
+
 	/**
 	 * blocks until every reached the barrier and the master ordered the release
 	 * it sends the number of active vertexes
 	 * @throws IOException
 	 */
-	public void enter(int activeVertexes) throws IOException {
+	public int enterAndGetData(int activeVertexes) throws IOException {
 		// enqueue myself in the barrier
 		WriteMessage w = sender.newMessage();
 		w.writeInt(MasterBarrier.BARRIER_ENTER);
@@ -72,12 +70,30 @@ public class WorkerBarrier {
 		// block until I get the release message
 		ReadMessage r = receiver.receive();
 		waitRelease(r);
+		int superstep = r.readInt();
 		// unpack aggregators
 		int bufferSize = r.readInt();
 		byte[] buffer = new byte[bufferSize];
 		r.readArray(buffer);
 		aggStream.unpackAndUpdate(buffer);
+		r.finish();
 		
+		return superstep; 
+	}
+	
+	/**
+	 * general purpose synchronization
+	 * simple enter/release sync
+	 * 
+	 * @throws IOException 
+	 */
+	public void enter() throws IOException {
+		WriteMessage w = sender.newMessage();
+		w.writeInt(MasterBarrier.BARRIER_ENTER);
+		w.finish();
+		// release
+		ReadMessage r = receiver.receive();
+		waitRelease(r);
 		r.finish();
 	}
 	

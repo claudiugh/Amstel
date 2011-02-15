@@ -10,7 +10,7 @@ import nl.vu.cs.amstel.user.Value;
 public class WorkerState<E extends Value, M extends MessageValue> {
 	
 	public int superstep;
-	public int activeVertexes;
+	public int activeVertices;
 	public MessageRouter<?, E, M> router;
 	public Map<String, AggregatorState> aggregators;
 	public ArrayOutEdgeIterator<E> edgeIterator;

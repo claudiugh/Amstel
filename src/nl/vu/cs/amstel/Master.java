@@ -104,7 +104,7 @@ public class Master<V, M extends MessageValue> extends AmstelNode<V, M> {
 			if (!aggState.aggregator.isSticky()) {
 				aggState.aggregator.reset();
 			}
-		}		
+		}	
 	}
 	
 	public void run() throws Exception {
@@ -118,20 +118,19 @@ public class Master<V, M extends MessageValue> extends AmstelNode<V, M> {
 		registration();
 		// reading input
 		barrier.await();
-		barrier.release(0);
+		barrier.release();
 		// run the super-steps 
 		int superstep = 0;
 		int activeVertices = 1;
 		while (activeVertices > 0) {
-			activeVertices = barrier.await();
+			activeVertices = barrier.awaitAndGetAggregators();
 			logSuperstepInfo(activeVertices, superstep);
 			if (activeVertices == 0) {
 				// end of the algorithm
-				barrier.release(-1);
-				break;
+				superstep = -1;
 			}			
+			barrier.releaseAndSendAggregators(superstep);
 			superstep++;
-			barrier.release(superstep);
 			manageAggregators();
 		}
 		// compute running time
