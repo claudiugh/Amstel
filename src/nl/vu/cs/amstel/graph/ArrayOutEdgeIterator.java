@@ -29,7 +29,7 @@ public class ArrayOutEdgeIterator<E extends Value> implements OutEdgeIterator<E>
 
 	@Override
 	public boolean hasNext() {
-		return index < edges.length - 1;
+		return index < edges.length;
 	}
 
 	@Override
