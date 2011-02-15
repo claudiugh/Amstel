@@ -42,7 +42,7 @@ public class GraphInput {
 			for (int j = 0; j < EDGES; j++) {
 				int v = (j + u + 1) % VERTEXES;
 				edges[0][j] = vertexes[v];
-				edges[1][j] = "" + j;
+				edges[1][j] = "1";
 			}
 			data.put(vertexes[u], edges);
 		}
@@ -50,6 +50,7 @@ public class GraphInput {
 	}
 	
 	public static int readValue(String vertex) {
-		return rand.nextInt(VERTEXES);
+		//return rand.nextInt(VERTEXES);
+		return Integer.MAX_VALUE;
 	}
 }
