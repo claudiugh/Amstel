@@ -30,7 +30,7 @@ public class MessageRouter<V extends Value, E extends Value,
 	protected MessageFactory<M> msgFactory;
 	
 	private IbisIdentifier[] partitions;
-	private Map<String, VertexState<V, E, M>> vertices;
+	private Map<String, VertexState<V, E>> vertices;
 	
 	// since we use only the local delivery feature, the inbox doesn't 
 	// need to be changed every super-step if the local inbox is common.
@@ -47,7 +47,7 @@ public class MessageRouter<V extends Value, E extends Value,
 		Collections.synchronizedSet(new HashSet<IbisIdentifier>());
 	
 	public MessageRouter(Ibis ibis, IbisIdentifier[] partitions, 
-			Map<String, VertexState<V, E, M>> vertices, 
+			Map<String, VertexState<V, E>> vertices, 
 			MessageFactory<M> msgFactory) {
 		this.ibis = ibis;
 		this.partitions = partitions;
@@ -110,7 +110,7 @@ public class MessageRouter<V extends Value, E extends Value,
 		return senders.get(worker);
 	}
 	
-	public void send(VertexState<V, E, M> vertex) throws IOException {
+	public void send(VertexState<V, E> vertex) throws IOException {
 		IbisIdentifier owner = getOwner(vertex.getID());
 		SendPort sender = getSender(owner);
 		synchronized(sender) {

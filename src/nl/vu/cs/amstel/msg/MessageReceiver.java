@@ -34,8 +34,8 @@ public class MessageReceiver<V extends Value, E extends Value,
 	protected VertexFactory<V, E> valuesFactory;
 	
 	private InboundQueue<M> inbox = null;
-	private List<VertexState<V, E, M>> inputVertexes = 
-		new ArrayList<VertexState<V, E, M>>();
+	private List<VertexState<V, E>> inputVertexes = 
+		new ArrayList<VertexState<V, E>>();
 	
 	public MessageReceiver(ReceivePort receiver, MessageRouter<V, E, M> router,
 			VertexFactory<V, E> valuesFactory) {
@@ -45,7 +45,7 @@ public class MessageReceiver<V extends Value, E extends Value,
 	}
 
 	private void inputMessage(ReadMessage msg) throws IOException {
-		VertexState<V, E, M> vertex = new VertexState<V, E, M>();
+		VertexState<V, E> vertex = new VertexState<V, E>();
 		int bufferSize = msg.readInt();
 		byte[] buffer = new byte[bufferSize];
 		msg.readArray(buffer);
@@ -73,7 +73,7 @@ public class MessageReceiver<V extends Value, E extends Value,
 		this.inbox = inbox;
 	}
 	
-	public List<VertexState<V, E, M>> getReceivedVertexes() {
+	public List<VertexState<V, E>> getReceivedVertexes() {
 		return inputVertexes;
 	}
 	

@@ -6,11 +6,9 @@ import java.io.IOException;
 import java.lang.reflect.Array;
 
 import nl.vu.cs.amstel.VertexIdStorage;
-import nl.vu.cs.amstel.user.MessageValue;
 import nl.vu.cs.amstel.user.Value;
 
-public class VertexState<V extends Value, E extends Value,
-		M extends MessageValue> {
+public class VertexState<V extends Value, E extends Value> {
 
 	public static final int LOCAL_INBOX_SIZE = 512;
 	

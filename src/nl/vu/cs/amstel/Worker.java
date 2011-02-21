@@ -58,8 +58,8 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 		new HashMap<Integer, String>();
 	private boolean[] active;
 	
-	private Map<String, VertexState<V, E, M>> vertices = 
-		new HashMap<String, VertexState<V, E, M>>();
+	private Map<String, VertexState<V, E>> vertices = 
+		new HashMap<String, VertexState<V, E>>();
 	// messages in-boxes
 	private InboundQueue<M> inbox;
 	private InboundQueue<M> futureInbox;
@@ -88,7 +88,7 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 		r.finish();
 	}
 	
-	private void addVertex(VertexState<V, E, M> vertex) {
+	private void addVertex(VertexState<V, E> vertex) {
 		crtIndex++;
 		vertex.setIndex(crtIndex);
 		vertices.put(vertex.getID(), vertex);
@@ -113,7 +113,7 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 					edgeValues[i] = vertexFactory.createEdgeValue(inputEdges[1][i]);
 				}
 			}
-			VertexState<V, E, M> state = new VertexState<V, E, M>(vertex, 
+			VertexState<V, E> state = new VertexState<V, E>(vertex, 
 					vertexValue, inputEdges[0], edgeValues);
 			if (messageRouter.getOwner(vertex).equals(ibis.identifier())) {
 				// this vertex belongs to me
@@ -125,7 +125,7 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 	}
 	
 	private void loadReceivedInput() {
-		for (VertexState<V, E, M> vertex : messageReceiver.getReceivedVertexes()) {
+		for (VertexState<V, E> vertex : messageReceiver.getReceivedVertexes()) {
 			addVertex(vertex);
 		}
 	}
@@ -194,7 +194,7 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 		int msgs = 0;
 		for (int i = 0; i < active.length; i++) {
 			if (inbox.hasMessages(i) || active[i]) {
-				VertexState<V, E, M> vertexState = 
+				VertexState<V, E> vertexState = 
 					vertices.get(idToVertex.get(i));
 				v.setState(vertexState);
 				// we consider the vertex as active

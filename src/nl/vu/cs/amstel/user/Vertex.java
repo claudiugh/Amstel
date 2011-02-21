@@ -14,10 +14,10 @@ public abstract class Vertex<V extends Value, E extends Value,
 
 	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	
-	private VertexState<V, E, M> state = null;
+	private VertexState<V, E> state = null;
 	private WorkerState<E, M> workerState = null;
 	
-	public void setState(VertexState<V, E, M> state) {
+	public void setState(VertexState<V, E> state) {
 		this.state = state;
 	}
 	
