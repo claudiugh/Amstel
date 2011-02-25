@@ -1,12 +1,14 @@
 package nl.vu.cs.amstel;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import nl.vu.cs.amstel.graph.GraphInput;
-import nl.vu.cs.amstel.graph.InputPartition;
+import nl.vu.cs.amstel.graph.io.InputPartition;
+import nl.vu.cs.amstel.graph.io.Reader;
+import nl.vu.cs.amstel.graph.io.TextFileReader;
 import nl.vu.cs.amstel.user.Combiner;
 import nl.vu.cs.amstel.user.MessageValue;
 
@@ -19,7 +21,7 @@ import ibis.ipl.WriteMessage;
 
 public class Master<V, M extends MessageValue> extends AmstelNode<V, M> {
 
-	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel.master");
+	protected static Logger logger = Logger.getLogger("nl.vu.cs.amstel.master");
 	
 	private Ibis ibis;
 	private ReceivePort receiver;
@@ -53,17 +55,15 @@ public class Master<V, M extends MessageValue> extends AmstelNode<V, M> {
 		w.finish();
 	}
 	
-	private Map<IbisIdentifier, InputPartition> partitionInput() {
-		HashMap<IbisIdentifier, InputPartition> partitions = 
+	private Map<IbisIdentifier, InputPartition> partitionInput() 
+			throws IOException {
+		Reader reader = new TextFileReader("small-ring-n10-e1.txt");
+		InputPartition input[] = reader.getPartitions(workers.length);
+		
+		Map<IbisIdentifier, InputPartition> partitions = 
 			new HashMap<IbisIdentifier, InputPartition>();
-		int perWorker = GraphInput.VERTEXES / workers.length;
-		int remaining = GraphInput.VERTEXES - workers.length * perWorker;
-		int from = 0;
 		for (int i = 0; i < workers.length; i++) {
-			int count = (i < remaining) ? perWorker + 1 : perWorker;
-			partitions.put(workers[i],
-				new InputPartition(GraphInput.vertexes[from], count));
-			from += count;
+			partitions.put(workers[i], input[i]);
 		}
 		return partitions;
 	}
@@ -108,8 +108,6 @@ public class Master<V, M extends MessageValue> extends AmstelNode<V, M> {
 	}
 	
 	public void run() throws Exception {
-		logger.info("Running for " + GraphInput.VERTEXES + " vertexes"
-				+ " and " + GraphInput.EDGES + " edges");
 		// record start time
 		long startTime = System.currentTimeMillis();
 		

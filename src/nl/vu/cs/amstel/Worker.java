@@ -8,10 +8,11 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import nl.vu.cs.amstel.graph.ArrayOutEdgeIterator;
-import nl.vu.cs.amstel.graph.GraphInput;
-import nl.vu.cs.amstel.graph.InputPartition;
 import nl.vu.cs.amstel.graph.VertexFactory;
 import nl.vu.cs.amstel.graph.VertexState;
+import nl.vu.cs.amstel.graph.io.InputPartition;
+import nl.vu.cs.amstel.graph.io.Reader;
+import nl.vu.cs.amstel.graph.io.TextFileReader;
 import nl.vu.cs.amstel.msg.CombinedInboundQueue;
 import nl.vu.cs.amstel.msg.InboundQueue;
 import nl.vu.cs.amstel.msg.MessageFactory;
@@ -95,33 +96,20 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 		idToVertex.put(vertex.getIndex(), vertex.getID());
 	}
 	
-	@SuppressWarnings("unchecked")
-	private void readInput() throws IOException {
-		Map<String, String[][]> inputVertexes = 
-			GraphInput.readEdges(inputPartition);
-		for (String vertex : inputVertexes.keySet()) {
-			int value = GraphInput.readValue(vertex);
-			V vertexValue = vertexFactory.createValue(value);
-			String[][] inputEdges = inputVertexes.get(vertex);
-			E[] edgeValues = null;
-			// in case we don't use the edge values, the edge values array 
-			// will remain null
-			if (!VertexFactory.hasNullEdgeValue()) {
-				edgeValues = (E[]) Array.newInstance(
-						vertexFactory.edgeValueClass, inputEdges[1].length);
-				for (int i = 0; i < edgeValues.length; i++) {
-					edgeValues[i] = vertexFactory.createEdgeValue(inputEdges[1][i]);
-				}
-			}
-			VertexState<V, E> state = new VertexState<V, E>(vertex, 
-					vertexValue, inputEdges[0], edgeValues);
-			if (messageRouter.getOwner(vertex).equals(ibis.identifier())) {
+	private void readInput() throws Exception {
+		Reader reader = new TextFileReader(inputPartition);
+		while (reader.hasNext()) {
+			VertexState<V, E> vertexState = reader.nextVertex(vertexFactory);
+			if (messageRouter.getOwner(vertexState.getID()).equals(
+					ibis.identifier())) {
 				// this vertex belongs to me
-				addVertex(state);
+				addVertex(vertexState);
 			} else {
-				messageRouter.send(state);				
-			}
+				messageRouter.send(vertexState);				
+			}			
 		}
+		
+		reader.close();
 	}
 	
 	private void loadReceivedInput() {
@@ -237,7 +225,7 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 		messageFactory.setCombinerClass(combinerClass);
 	}
 	
-	public void run() throws IOException, InterruptedException {
+	public void run() throws Exception, InterruptedException {
 		register();
 		setupWorkerConnections();
 		// reading input and distribute vertexes

@@ -42,6 +42,17 @@ public class VertexFactory<V, E> {
 		return null;
 	}
 	
+	public V createValue(String value) {
+		try {
+			Constructor<V> constr =
+				vertexValueClass.getConstructor(new Class[]{String.class});
+			return constr.newInstance(value);
+		} catch (Exception e) {
+			logger.fatal("Error trying to create vertex value from String", e);
+		}
+		return null;
+	}
+	
 	public E createEdgeValue() {
 		try {
 			return edgeValueClass.newInstance();
