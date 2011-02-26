@@ -20,14 +20,20 @@ public class MaxvalRunner {
 	 */
 	public static void main(String args[]) throws Exception {
 		int nodes;
+		String filename;
 		
 		if (args[0] != null) {
 			nodes = Integer.parseInt(args[0]);
 		} else {
 			throw new Exception("Number of nodes unspecified");
 		}
+		if (args[1] != null) {
+			filename = args[1];
+		} else {
+			throw new Exception("Input filename not specified");
+		}
 		
-		Reader reader = new TextFileReader("small-ring-n10-e1.txt");
+		Reader reader = new TextFileReader(filename);
 		Node<IntValue, NullValue, IntMessage> node = 
 			new Node<IntValue, NullValue, IntMessage>(nodes, MaxvalVertex.class, 
 					IntValue.class, NullValue.class, IntMessage.class, reader);
