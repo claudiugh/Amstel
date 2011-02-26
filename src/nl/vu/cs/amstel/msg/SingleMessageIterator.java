@@ -15,7 +15,8 @@ public class SingleMessageIterator<M extends MessageValue>
 	implements Iterator<M>, Iterable<M> {
 
 	private M msg;
-	private boolean active = true;
+	private boolean active = false;
+	private boolean visited = false;
 	
 	public SingleMessageIterator(M msg) {
 		this.msg = msg;
@@ -32,14 +33,13 @@ public class SingleMessageIterator<M extends MessageValue>
 	
 	@Override
 	public Iterator<M> iterator() {
-		// make it reusable
-		active = true;
+		visited = false;
 		return this;
 	}
 
 	@Override
 	public boolean hasNext() {
-		return active;
+		return active && !visited;
 	}
 
 	@Override
@@ -48,6 +48,7 @@ public class SingleMessageIterator<M extends MessageValue>
 			return null;
 		}
 		active = false;
+		visited = true;
 		return msg;
 	}
 
