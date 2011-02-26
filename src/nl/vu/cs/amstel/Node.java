@@ -1,5 +1,6 @@
 package nl.vu.cs.amstel;
 
+import nl.vu.cs.amstel.graph.io.Reader;
 import nl.vu.cs.amstel.user.Aggregator;
 import nl.vu.cs.amstel.user.Combiner;
 import nl.vu.cs.amstel.user.MessageValue;
@@ -37,7 +38,8 @@ public class Node<V extends Value, E extends Value, M extends MessageValue> {
     public Node(int nodes, Class<? extends Vertex<V, E, M>> vertexClass,
     		Class<V> vertexValueClass,
     		Class<E> edgeValueClass,
-			Class<M> messageClass) throws Exception {
+			Class<M> messageClass,
+			Reader reader) throws Exception {
     	ibis = IbisFactory.createIbis(ibisCapabilities, null, 
 				W2M_PORT, M2W_PORT, W2W_PORT);		 
 	    // Elect a server
@@ -45,7 +47,7 @@ public class Node<V extends Value, E extends Value, M extends MessageValue> {
     	if (master.equals(ibis.identifier())) {
     		// the number of workers is the total number of nodes excluding the
     		// the master node
-    		node = new Master<V, M>(ibis, nodes - 1);
+    		node = new Master<V, M>(ibis, nodes - 1, reader);
 	    } else {
 	    	node = new Worker<V, E, M>(ibis, master, vertexClass, 
 	    			vertexValueClass, edgeValueClass, messageClass);

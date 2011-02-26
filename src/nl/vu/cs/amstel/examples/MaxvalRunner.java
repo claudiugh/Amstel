@@ -1,6 +1,8 @@
 package nl.vu.cs.amstel.examples;
 
 import nl.vu.cs.amstel.Node;
+import nl.vu.cs.amstel.graph.io.Reader;
+import nl.vu.cs.amstel.graph.io.TextFileReader;
 import nl.vu.cs.amstel.user.IntMessage;
 import nl.vu.cs.amstel.user.IntValue;
 import nl.vu.cs.amstel.user.MaxIntAggregator;
@@ -25,9 +27,10 @@ public class MaxvalRunner {
 			throw new Exception("Number of nodes unspecified");
 		}
 		
+		Reader reader = new TextFileReader("small-ring-n10-e1.txt");
 		Node<IntValue, NullValue, IntMessage> node = 
 			new Node<IntValue, NullValue, IntMessage>(nodes, MaxvalVertex.class, 
-					IntValue.class, NullValue.class, IntMessage.class);
+					IntValue.class, NullValue.class, IntMessage.class, reader);
 		node.setCombiner(MaxIntCombiner.class);
 		node.addAggregator(new MaxIntAggregator("MaxVertex"));
 		node.run();

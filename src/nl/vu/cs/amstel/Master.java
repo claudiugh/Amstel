@@ -28,6 +28,7 @@ public class Master<V, M extends MessageValue> extends AmstelNode<V, M> {
 	private SendPort sender;
 	private MasterBarrier barrier;
 	private IbisIdentifier[] workers;
+	private Reader reader;
 	
 	private void registration() throws Exception {
 		logger.info("Begin registration");
@@ -57,7 +58,6 @@ public class Master<V, M extends MessageValue> extends AmstelNode<V, M> {
 	
 	private Map<IbisIdentifier, InputPartition> partitionInput() 
 			throws IOException {
-		Reader reader = new TextFileReader("small-ring-n10-e1.txt");
 		InputPartition input[] = reader.getPartitions(workers.length);
 		
 		Map<IbisIdentifier, InputPartition> partitions = 
@@ -87,7 +87,7 @@ public class Master<V, M extends MessageValue> extends AmstelNode<V, M> {
 	
 	public void logSuperstepInfo(int activeVertices, int superstep) {
 		logger.info("Superstep " + superstep + ": "
-				+ activeVertices + " vertexes left");
+				+ activeVertices + " active vertices");
 		for (AggregatorState aggState : aggregators.values()) {
 			if (aggState.aggregator.hasValue()) {
 				logger.info("Aggregator " + aggState.aggregator.getName() + ": "
@@ -140,8 +140,9 @@ public class Master<V, M extends MessageValue> extends AmstelNode<V, M> {
 		ibis.end();		
 	}
 
-	public Master(Ibis ibis, int workersNo) throws Exception {
+	public Master(Ibis ibis, int workersNo, Reader reader) throws Exception {
 		this.ibis = ibis;
+		this.reader = reader;
 		workers = new IbisIdentifier[workersNo];
 		receiver = ibis.createReceivePort(Node.W2M_PORT, "w2m");
 		sender = ibis.createSendPort(Node.M2W_PORT, "m2w");
