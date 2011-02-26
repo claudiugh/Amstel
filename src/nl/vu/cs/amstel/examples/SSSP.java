@@ -16,7 +16,13 @@ public class SSSP {
 		} else {
 			throw new Exception("Number of nodes unspecified");
 		}
-
+		if (args[1] != null && args[2] != null) {
+			SSSPVertex.SRC = args[1];
+			SSSPVertex.DST = args[2];
+		} else {
+			throw new Exception("Source and destination not specified");
+		}
+		
 		Node<IntValue, IntValue, IntMessage> node =
 			new Node<IntValue, IntValue, IntMessage>(nodes, SSSPVertex.class,
 					IntValue.class, IntValue.class, IntMessage.class);
