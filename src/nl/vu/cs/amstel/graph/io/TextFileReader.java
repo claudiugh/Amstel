@@ -12,6 +12,7 @@ import java.nio.channels.FileChannel.MapMode;
 
 import org.apache.log4j.Logger;
 
+import nl.vu.cs.amstel.FormatHelper;
 import nl.vu.cs.amstel.graph.VertexFactory;
 import nl.vu.cs.amstel.graph.VertexState;
 import nl.vu.cs.amstel.user.Value;
@@ -29,6 +30,37 @@ public class TextFileReader implements Reader {
 	private long offset;
 	private long length;
 	private long bytesRead = 0;
+	
+	private class Partitioner implements InputPartitioner {		
+		@Override
+		public InputPartition[] getPartitions(int workers) throws IOException {
+			long perWorker = fileSize / workers;
+			InputPartition[] partitions = new InputPartition[workers];
+			long offset = 0;
+			long pos;
+			for (int i = 0; i < workers; i++) {
+				pos = (i + 1) * perWorker;
+				file.seek(pos);
+				try {
+					while (file.readByte() != '\n') {
+						pos++;
+					}
+					pos++;
+				} catch (EOFException e) {
+					pos = fileSize;
+				}
+				partitions[i] = 
+					new TextFilePartition(filename, offset, pos - offset);
+				offset = pos;
+			}
+			return partitions;
+		}
+		
+		public String toString() {
+			return "using as input text file '" + filename + "', with size "
+				+ FormatHelper.formatSize(fileSize);
+		}
+	}
 	
 	private void openFile() throws FileNotFoundException {
 		file = new RandomAccessFile(filename, "rw");
@@ -105,32 +137,17 @@ public class TextFileReader implements Reader {
 	}
 
 	@Override
-	public InputPartition[] getPartitions(int workers) throws IOException {
-		long perWorker = fileSize / workers;
-		InputPartition[] partitions = new InputPartition[workers];
-		long offset = 0;
-		long pos;
-		for (int i = 0; i < workers; i++) {
-			pos = (i + 1) * perWorker;
-			file.seek(pos);
-			try {
-				while (file.readByte() != '\n') {
-					pos++;
-				}
-				pos++;
-			} catch (EOFException e) {
-				pos = fileSize;
-			}
-			partitions[i] = 
-				new TextFilePartition(filename, offset, pos - offset);
-			offset = pos;
-		}
-		return partitions;
-	}
-
-	@Override
 	public void close() throws IOException {
 		file.close();
 	}
 
+	@Override
+	public InputPartitioner getPartitioner() {
+		return new Partitioner();
+	}
+
+	public String toString() {
+		return FormatHelper.formatSize(length);
+	}
+	
 }

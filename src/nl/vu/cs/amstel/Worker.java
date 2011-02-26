@@ -96,6 +96,7 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 	
 	private void readInput() throws Exception {
 		Reader reader = new TextFileReader(inputPartition);
+		int readVertices = 0;
 		while (reader.hasNext()) {
 			VertexState<V, E> vertexState = reader.nextVertex(vertexFactory);
 			if (messageRouter.getOwner(vertexState.getID()).equals(
@@ -104,9 +105,11 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 				addVertex(vertexState);
 			} else {
 				messageRouter.send(vertexState);				
-			}			
+			}
+			readVertices++;
 		}
 		
+		logger.info("Read " + readVertices + " vertices and " + reader);
 		reader.close();
 	}
 	

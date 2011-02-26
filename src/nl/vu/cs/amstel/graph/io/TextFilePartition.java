@@ -18,3 +18,4 @@ public class TextFilePartition implements InputPartition {
 		return filename + ": from " + offset + " " + length + " bytes";
 	}
 }
+

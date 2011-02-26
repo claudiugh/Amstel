@@ -8,7 +8,7 @@ import nl.vu.cs.amstel.user.Value;
 
 public interface Reader {
 
-	InputPartition[] getPartitions(int workers) throws IOException;
+	InputPartitioner getPartitioner();
 	
 	void close() throws IOException;
 	

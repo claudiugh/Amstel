@@ -7,8 +7,8 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import nl.vu.cs.amstel.graph.io.InputPartition;
+import nl.vu.cs.amstel.graph.io.InputPartitioner;
 import nl.vu.cs.amstel.graph.io.Reader;
-import nl.vu.cs.amstel.graph.io.TextFileReader;
 import nl.vu.cs.amstel.user.Combiner;
 import nl.vu.cs.amstel.user.MessageValue;
 
@@ -58,7 +58,9 @@ public class Master<V, M extends MessageValue> extends AmstelNode<V, M> {
 	
 	private Map<IbisIdentifier, InputPartition> partitionInput() 
 			throws IOException {
-		InputPartition input[] = reader.getPartitions(workers.length);
+		InputPartitioner partitioner = reader.getPartitioner();
+		logger.info(partitioner);
+		InputPartition input[] = partitioner.getPartitions(workers.length);
 		
 		Map<IbisIdentifier, InputPartition> partitions = 
 			new HashMap<IbisIdentifier, InputPartition>();
@@ -66,17 +68,6 @@ public class Master<V, M extends MessageValue> extends AmstelNode<V, M> {
 			partitions.put(workers[i], input[i]);
 		}
 		return partitions;
-	}
-	
-	private static String formatTime(long millis) {
-		long seconds = millis / 1000;
-		if (seconds < 60) {
-			return seconds + "s";
-		} else {
-			long minutes = seconds / 60;
-			seconds = seconds % 60;
-			return minutes + "m " + seconds + "s";
-		}
 	}
 	
 	@Override
@@ -108,16 +99,20 @@ public class Master<V, M extends MessageValue> extends AmstelNode<V, M> {
 	}
 	
 	public void run() throws Exception {
-		// record start time
-		long startTime = System.currentTimeMillis();
 		
-		// setup phase 
+		// setup phase (not accounted)
 		receiver.enableConnections();			
 		registration();
+
 		// reading input
+		long ts = System.currentTimeMillis();
 		barrier.await();
 		barrier.release();
+		long inputTime = System.currentTimeMillis() - ts;
+		logger.info("Input time: " + FormatHelper.formatTime(inputTime));
+		
 		// run the super-steps 
+		ts = System.currentTimeMillis();
 		int superstep = 0;
 		int activeVertices = 1;
 		while (activeVertices > 0) {
@@ -132,8 +127,8 @@ public class Master<V, M extends MessageValue> extends AmstelNode<V, M> {
 			manageAggregators();
 		}
 		// compute running time
-		long runningTime = System.currentTimeMillis() - startTime;
-		logger.info("Running time: " + formatTime(runningTime));
+		long computeTime = System.currentTimeMillis() - ts;
+		logger.info("Running time: " + FormatHelper.formatTime(computeTime));
 		// exit
 		receiver.close();
 		sender.close();
