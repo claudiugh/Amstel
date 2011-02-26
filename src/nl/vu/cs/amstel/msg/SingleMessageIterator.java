@@ -4,6 +4,13 @@ import java.util.Iterator;
 
 import nl.vu.cs.amstel.user.MessageValue;
 
+/**
+ * Iterator over a single message, used for combined inbox
+ * IMPORTANT: not reentrant
+ * @author claudiugh
+ *
+ * @param <M>
+ */
 public class SingleMessageIterator<M extends MessageValue> 
 	implements Iterator<M>, Iterable<M> {
 
@@ -25,6 +32,8 @@ public class SingleMessageIterator<M extends MessageValue>
 	
 	@Override
 	public Iterator<M> iterator() {
+		// make it reusable
+		active = true;
 		return this;
 	}
 

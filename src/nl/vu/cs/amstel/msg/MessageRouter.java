@@ -32,8 +32,6 @@ public class MessageRouter<V extends Value, E extends Value,
 	private IbisIdentifier[] partitions;
 	private Map<String, VertexState<V, E>> vertices;
 	
-	// since we use only the local delivery feature, the inbox doesn't 
-	// need to be changed every super-step if the local inbox is common.
 	private InboundQueue<M> inbox = null;
 	
 	// the send ports for each other worker
@@ -53,7 +51,6 @@ public class MessageRouter<V extends Value, E extends Value,
 		this.partitions = partitions;
 		this.vertices = vertices;
 		this.msgFactory = msgFactory;
-		
 	}
 	
 	public IbisIdentifier getOwner(String vid) {

@@ -6,6 +6,12 @@ import java.util.List;
 
 import nl.vu.cs.amstel.user.MessageValue;
 
+/**
+ * This iterator is not reentrant
+ * @author claudiugh
+ *
+ * @param <M>
+ */
 public class MessageIterator<M extends MessageValue> implements Iterator<M>,
 		Iterable<M> {
 
@@ -60,8 +66,13 @@ public class MessageIterator<M extends MessageValue> implements Iterator<M>,
 		// not implemented 
 	}
 
+	/**
+	 * NOT reentrant
+	 */
 	@Override
 	public Iterator<M> iterator() {
+		// make this iterator reusable
+		setCurrentBuffer(0);
 		return this;
 	}
 

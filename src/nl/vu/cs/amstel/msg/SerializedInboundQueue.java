@@ -12,8 +12,10 @@ import nl.vu.cs.amstel.user.MessageValue;
 public class SerializedInboundQueue<M extends MessageValue> 
 	implements InboundQueue<M> {
 
+	private static final int LOCAL_INBOX_SIZE = 512;
 	// this is for resolving vertex id (String) to internal id (int)
 	protected Map<String, VertexState<?, ?>> vertices;
+	protected Map<Integer, String> idToVertex;
 	
 	private List<byte[]>[] inbox;
 	private MessageOutputBuffer<M>[] localInbox;
@@ -22,14 +24,17 @@ public class SerializedInboundQueue<M extends MessageValue>
 	@SuppressWarnings("unchecked")
 	public SerializedInboundQueue(int size,
 			Map<String, VertexState<?, ?>> vertices,
-			MessageOutputBuffer[] localInbox,
+			Map<Integer, String> idToVertex,
 			MessageIterator<M> msgIterator) {
 		this.vertices = vertices;
-		this.localInbox = localInbox;
+		this.idToVertex = idToVertex;
 		this.msgIterator = msgIterator;
 		inbox = new List[size];
+		localInbox = new MessageOutputBuffer[size];
 		for (int i = 0; i < inbox.length; i++) {
 			inbox[i] = new ArrayList<byte[]>();
+			localInbox[i] = new MessageOutputBuffer<M>(LOCAL_INBOX_SIZE, 
+					idToVertex.get(i));
 		}
 	}
 	

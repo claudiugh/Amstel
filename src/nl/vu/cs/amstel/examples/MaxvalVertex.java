@@ -1,5 +1,7 @@
 package nl.vu.cs.amstel.examples;
 
+import org.apache.log4j.Logger;
+
 import nl.vu.cs.amstel.user.IntMessage;
 import nl.vu.cs.amstel.user.IntValue;
 import nl.vu.cs.amstel.user.NullValue;
@@ -7,30 +9,27 @@ import nl.vu.cs.amstel.user.Vertex;
 
 public class MaxvalVertex extends Vertex<IntValue, NullValue, IntMessage> {
 
-	private static boolean printed = false;
+	protected static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	
 	public void compute(Iterable<IntMessage> messages) {
-		IntValue max = getValue();
+		IntValue local = getValue();
 		IntMessage outMsg = newMessage();
 		if (getSuperstep() == 0) {
-			outputAggregate("MaxVertex", max);
-			outMsg.value = max.value;
+			outMsg.value = local.value;
 			sendToAll(outMsg);
 			return;
 		}
-		if (!printed && getSuperstep() == 1) {
-			System.out.println("MaxVertex value: " + readAggregate("MaxVertex"));
-			printed = true;
-		}
-		int localMax = max.value;
+
+		int max = local.value;
 		for (IntMessage m : messages) {
-			if (m.value > localMax) {
-				localMax = m.value;
+			if (m.value > max) {
+				max = m.value;
 			}
 		}
-		if (max.value != localMax) {
-			max.value = localMax;
-			outMsg.value = localMax;
+		if (local.value != max) {
+			// we found a better value
+			local.value = max;
+			outMsg.value = max;
 			sendToAll(outMsg);
 		} else {
 			voteToHalt();

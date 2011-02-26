@@ -1,7 +1,6 @@
 package nl.vu.cs.amstel;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,7 +16,6 @@ import nl.vu.cs.amstel.msg.CombinedInboundQueue;
 import nl.vu.cs.amstel.msg.InboundQueue;
 import nl.vu.cs.amstel.msg.MessageFactory;
 import nl.vu.cs.amstel.msg.MessageIterator;
-import nl.vu.cs.amstel.msg.MessageOutputBuffer;
 import nl.vu.cs.amstel.msg.MessageReceiver;
 import nl.vu.cs.amstel.msg.MessageRouter;
 import nl.vu.cs.amstel.msg.SerializedInboundQueue;
@@ -36,7 +34,7 @@ import ibis.ipl.WriteMessage;
 public class Worker<V extends Value, E extends Value, M extends MessageValue> 
 		extends AmstelNode<V, M> {
 
-	private static final int LOCAL_INBOX_SIZE = 512;
+
 	private static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	
 	// for instantiation of user provided classes
@@ -124,33 +122,24 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 		active = new boolean[count];
 		
 		if (!messageFactory.hasCombiner()) {
-			MessageOutputBuffer<M>[] localInbox =
-				new MessageOutputBuffer[count];
 			MessageIterator<M> msgIterator = 
 				new MessageIterator<M>(messageFactory.create());
-			inbox = new SerializedInboundQueue(count, vertices, localInbox,
+			inbox = new SerializedInboundQueue(count, vertices, idToVertex,
 					msgIterator);
 			futureInbox = new SerializedInboundQueue(count, vertices, 
-					localInbox, msgIterator);
+					idToVertex, msgIterator);
 			for (int i = 0; i < count; i++) {
 				active[i] = true;
-				localInbox[i] = new MessageOutputBuffer<M>(LOCAL_INBOX_SIZE, 
-						idToVertex.get(i));
 			}
 		} else {
-			M[] localInbox = (M[]) Array.newInstance(
-					messageFactory.getMessageClass(),
-					count);
-			inbox = new CombinedInboundQueue(count, messageFactory, vertices,
-					localInbox);
+			inbox = new CombinedInboundQueue(count, messageFactory, vertices);
 			futureInbox = new CombinedInboundQueue(count, messageFactory,
-					vertices, localInbox);
+					vertices);
 			for (int i = 0; i < count; i++) {
 				active[i] = true;
 			}
 		}
 
-		messageRouter.setInbox(inbox);
 		state.active = active;
 	}
 	
@@ -251,6 +240,7 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 			// the computation iteration
 			while (state.superstep >= 0) {
 				messageReceiver.setInbox(futureInbox);
+				messageRouter.setInbox(futureInbox);
 				state.superstep = barrier.enterAndGetData(state.activeVertices);
 				if (state.superstep >= 0) {
 					// compute phase

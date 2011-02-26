@@ -30,15 +30,16 @@ public class CombinedInboundQueue<M extends MessageValue>
 	
 	@SuppressWarnings("unchecked")
 	public CombinedInboundQueue(int size, MessageFactory<M> msgFactory,
-			Map<String, VertexState<?, ?>> vertices, M[] localInbox) {
+			Map<String, VertexState<?, ?>> vertices) {
 		this.msgFactory = msgFactory;
 		this.combiner = msgFactory.createCombiner();
 		this.m = msgFactory.create();
 		this.vertices = vertices;
-		this.localInbox = localInbox;
-		inbox = (M[]) Array.newInstance(msgFactory.getMessageClass(), size);
+		inbox = (M[])Array.newInstance(msgFactory.getMessageClass(), size);
+		localInbox = (M[])Array.newInstance(msgFactory.getMessageClass(), size);
 		for (int i = 0; i < size; i++) {
 			inbox[i] = null;
+			localInbox[i] = null;
 		}
 		msgIterator = new SingleMessageIterator<M>(msgFactory.create());
 	}
