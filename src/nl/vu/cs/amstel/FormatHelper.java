@@ -4,7 +4,9 @@ public class FormatHelper {
 
 	public static String formatTime(long millis) {
 		long seconds = millis / 1000;
-		if (seconds < 60) {
+		if (seconds < 0) {
+			return millis + "ms";
+		} else if (seconds < 60) {
 			return seconds + "s";
 		} else {
 			long minutes = seconds / 60;
