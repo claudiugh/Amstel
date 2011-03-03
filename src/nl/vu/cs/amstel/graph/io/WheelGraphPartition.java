@@ -4,17 +4,17 @@ public class WheelGraphPartition implements InputPartition {
 
 	private static final long serialVersionUID = 3855311417929126951L;
 
-	int fromVertex;
-	int toVertex;
 	int vertices;
 	int edges;
 	int maxVertexValue;
 	int maxEdgeValue;
+	int workers;
+	int workerIndex;
 	
-	public WheelGraphPartition(int fromVertex, int toVertex, int vertices, 
+	public WheelGraphPartition(int workers, int workerIndex, int vertices, 
 			int edges, int maxVertexValue, int maxEdgeValue) {
-		this.fromVertex = fromVertex;
-		this.toVertex = toVertex;
+		this.workers = workers;
+		this.workerIndex = workerIndex;
 		this.vertices = vertices;
 		this.edges = edges;
 		this.maxVertexValue = maxVertexValue;

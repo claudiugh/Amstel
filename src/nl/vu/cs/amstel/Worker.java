@@ -230,7 +230,7 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 		loadReceivedInput();
 		// initialize vertex arrays
 		initInboxes();
-		
+
 		state.activeVertices = vertices.size();
 		state.msg = messageFactory.create();
 		state.edgeIterator = new ArrayOutEdgeIterator<E>();

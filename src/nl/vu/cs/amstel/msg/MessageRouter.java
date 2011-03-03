@@ -1,6 +1,5 @@
 package nl.vu.cs.amstel.msg;
 
-import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Collections;
@@ -102,12 +101,18 @@ public class MessageRouter<V extends Value, E extends Value,
 		return new CombinedOutgoingQueue<M>(msgFactory);
 	}
 	
+	private OutgoingQueue<M> getQueue(IbisIdentifier worker) {
+		if (!outQueues.containsKey(worker)) {
+			outQueues.put(worker, createOutgoingQueue());
+		}
+		return outQueues.get(worker);
+	}
+	
 	public synchronized SendPort getSender(IbisIdentifier worker) throws IOException {
 		if (!senders.containsKey(worker)) {
 			SendPort sender = ibis.createSendPort(Node.W2W_PORT);
 			sender.connect(worker, "worker");
 			senders.put(worker, sender);
-			outQueues.put(worker, createOutgoingQueue());
 		}
 		return senders.get(worker);
 	}
@@ -176,7 +181,7 @@ public class MessageRouter<V extends Value, E extends Value,
 			inbox.deliverLocally(vertices.get(toVertex).getIndex(), msg);
 		} else {
 			// enqueue for sending
-			OutgoingQueue<M> outQueue = outQueues.get(owner);
+			OutgoingQueue<M> outQueue = getQueue(owner);
 			outQueue.add(toVertex, msg);
 			if (outQueue.reachedThreshold()) {
 				sendQueue(owner, outQueue, false);
@@ -199,8 +204,8 @@ public class MessageRouter<V extends Value, E extends Value,
 	 * @throws IOException
 	 */
 	public void flush() throws IOException {
-		for (IbisIdentifier worker : senders.keySet()) {
-			OutgoingQueue<M> outQueue = outQueues.get(worker);
+		for (IbisIdentifier worker : outQueues.keySet()) {
+			OutgoingQueue<M> outQueue = getQueue(worker);
 			if (!outQueue.isEmpty()) {
 				sendQueue(worker, outQueue, true);
 			}

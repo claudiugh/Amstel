@@ -22,21 +22,18 @@ public class WheelGraphGenerator implements Reader {
 	private int edges;
 	private int maxVertexValue;
 	private int maxEdgeValue;
-	
-	private int fromVertex;
-	private int toVertex;
+
+	private int workerIndex;
+	private int workers;
 	private int crtVertex;
 	
 	private class Partitioner implements InputPartitioner {
 
 		@Override
 		public InputPartition[] getPartitions(int workers) throws IOException {
-			int perWorker = vertices / workers;
 			InputPartition[] partitions = new WheelGraphPartition[workers];
 			for (int i = 0; i < workers; i++) {
-				int toVertex = (i < workers - 1) ? 
-						(i + 1) * perWorker : vertices;
-				partitions[i] = new WheelGraphPartition(i * perWorker, toVertex,
+				partitions[i] = new WheelGraphPartition(workers, i,
 						vertices, edges, maxVertexValue, maxEdgeValue);
 			}
 			return partitions;
@@ -63,13 +60,13 @@ public class WheelGraphGenerator implements Reader {
 	public void init(InputPartition inputPartition) throws Exception {
 		if (inputPartition instanceof WheelGraphPartition) {
 			WheelGraphPartition partition = (WheelGraphPartition) inputPartition;
-			this.fromVertex = partition.fromVertex;
-			this.toVertex = partition.toVertex;
+			this.workers = partition.workers;
+			this.workerIndex = partition.workerIndex;
 			this.vertices = partition.vertices;
 			this.edges = partition.edges;
 			this.maxVertexValue = partition.maxVertexValue;
 			this.maxEdgeValue = partition.maxEdgeValue;			
-			crtVertex = fromVertex;
+			crtVertex = 0;
 		} else {
 			throw new Exception("Input partition not valid");
 		}
@@ -87,14 +84,26 @@ public class WheelGraphGenerator implements Reader {
 
 	@Override
 	public boolean hasNext() throws IOException {
-		return crtVertex < toVertex;
+		return vertices - crtVertex >= workers;
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
 	public <V extends Value, E extends Value> VertexState<V, E> nextVertex(
 			VertexFactory<V, E> factory) throws IOException {
-		String vid = "V" + crtVertex;
+		String vid = "";
+		while (crtVertex < vertices) {
+			vid = "V" + crtVertex;
+			int code = vid.hashCode();
+			if (code < 0) {
+				code = -code;
+			}
+			if (code % workers == workerIndex) {
+				break;
+			}
+			crtVertex++;
+		}
+		
 		String[] edgeTargets = new String[edges];
 		V value = factory.createValue(vertexRand.nextInt(maxVertexValue));
 		E[] edgeValues = null;
