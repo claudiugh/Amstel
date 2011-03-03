@@ -104,7 +104,9 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 				// this vertex belongs to me
 				addVertex(vertexState);
 			} else {
-				messageRouter.send(vertexState);				
+				logger.info("Vertex " + vertexState.getID()
+						+ " does not belong to me");
+				messageRouter.send(vertexState);	
 			}
 			readVertices++;
 		}
@@ -219,6 +221,7 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 	}
 	
 	public void run() throws Exception, InterruptedException {
+		logger.info("I am " + ibis.identifier());
 		register();
 		setupWorkerConnections();
 		// reading input and distribute vertexes

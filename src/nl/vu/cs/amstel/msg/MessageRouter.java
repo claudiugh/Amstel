@@ -137,8 +137,17 @@ public class MessageRouter<V extends Value, E extends Value,
 			w.writeArray(buffer.getBuffer(), 0, buffer.size());
 			w.finish();
 		}
-		buffer.reset();
-		activateWorker(owner);
+		buffer.reset();	
+	}
+	
+	public void flushInputVertices() throws IOException {
+		for (IbisIdentifier worker : vertexBuffer.keySet()) {
+			if (vertexBuffer.size() > 0) {
+				flushInputVertices(worker);
+				sendFlush(worker);
+			}
+		}
+		waitFlushAck();
 	}
 	
 	public void send(VertexState<V, E> vertex) throws IOException {
@@ -147,14 +156,6 @@ public class MessageRouter<V extends Value, E extends Value,
 		vertex.serialize(vertexOutStream);
 		if (vertexBuffer.get(owner).size() > INPUT_VERTEX_BUFFER - 4096) {
 			flushInputVertices(owner);		
-		}
-	}
-	
-	public void flushInputVertices() throws IOException {
-		for (IbisIdentifier worker : vertexBuffer.keySet()) {
-			if (vertexBuffer.size() > 0) {
-				flushInputVertices(worker);
-			}
 		}
 	}
 	

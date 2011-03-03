@@ -67,6 +67,7 @@ public class WheelGraphGenerator implements Reader {
 			this.maxVertexValue = partition.maxVertexValue;
 			this.maxEdgeValue = partition.maxEdgeValue;			
 			crtVertex = 0;
+			findNext();
 		} else {
 			throw new Exception("Input partition not valid");
 		}
@@ -82,27 +83,34 @@ public class WheelGraphGenerator implements Reader {
 		return new Partitioner();
 	}
 
+	private int getHashCode(String s) {
+		int code = s.hashCode();
+		if (code < 0) {
+			code = - code;
+		}
+		return code;
+	}
+	
 	@Override
 	public boolean hasNext() throws IOException {
-		return vertices - crtVertex >= workers;
+		return crtVertex < vertices;
 	}
 
-	@SuppressWarnings("unchecked")
-	@Override
-	public <V extends Value, E extends Value> VertexState<V, E> nextVertex(
-			VertexFactory<V, E> factory) throws IOException {
-		String vid = "";
+	private void findNext() {
 		while (crtVertex < vertices) {
-			vid = "V" + crtVertex;
-			int code = vid.hashCode();
-			if (code < 0) {
-				code = -code;
-			}
-			if (code % workers == workerIndex) {
+			String vid = "V" + crtVertex;
+			if (getHashCode(vid) % workers == workerIndex) {
 				break;
 			}
 			crtVertex++;
 		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	public <V extends Value, E extends Value> VertexState<V, E> nextVertex(
+			VertexFactory<V, E> factory) throws IOException {
+		String vid = "V" + crtVertex;
 		
 		String[] edgeTargets = new String[edges];
 		V value = factory.createValue(vertexRand.nextInt(maxVertexValue));
@@ -121,6 +129,7 @@ public class WheelGraphGenerator implements Reader {
 		}
 		
 		crtVertex++;
+		findNext();
 		return new VertexState<V, E>(vid, value, edgeTargets, edgeValues);
 	}
 
