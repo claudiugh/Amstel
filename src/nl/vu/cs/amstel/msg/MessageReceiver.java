@@ -45,15 +45,17 @@ public class MessageReceiver<V extends Value, E extends Value,
 	}
 
 	private void inputMessage(ReadMessage msg) throws IOException {
-		VertexState<V, E> vertex = new VertexState<V, E>();
 		int bufferSize = msg.readInt();
 		byte[] buffer = new byte[bufferSize];
 		msg.readArray(buffer);
 		DataInputStream inStream = new DataInputStream(
 				new ByteArrayInputStream(buffer));
-		vertex.deserialize(inStream, valuesFactory);
-		// stack the vertex to the local list of received vertexes
-		inputVertexes.add(vertex);
+		while (inStream.available() > 0) {
+			VertexState<V, E> vertex = new VertexState<V, E>();
+			vertex.deserialize(inStream, valuesFactory);
+			// stack the vertex to the local list of received vertexes
+			inputVertexes.add(vertex);
+		}
 	}
 	
 	private void computeMessage(ReadMessage r) throws IOException {

@@ -24,15 +24,20 @@ import ibis.ipl.WriteMessage;
 public class MessageRouter<V extends Value, E extends Value,
 		M extends MessageValue> {
 
-	protected static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
+	public static final int INPUT_VERTEX_BUFFER = 40960;
 	
+	protected static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
 	protected Ibis ibis;
 	protected MessageFactory<M> msgFactory;
 	
 	private IbisIdentifier[] partitions;
 	private Map<String, VertexState<V, E>> vertices;
-	
 	private InboundQueue<M> inbox = null;
+	private HashMap<IbisIdentifier, ExposedByteArrayOutputStream> vertexBuffer =
+		new HashMap<IbisIdentifier, ExposedByteArrayOutputStream>();
+	private HashMap<IbisIdentifier, DataOutputStream> vertexOutStream =
+		new HashMap<IbisIdentifier, DataOutputStream>();
+	
 	
 	// the send ports for each other worker
 	private Map<IbisIdentifier, SendPort> senders = 
@@ -107,20 +112,45 @@ public class MessageRouter<V extends Value, E extends Value,
 		return senders.get(worker);
 	}
 	
-	public void send(VertexState<V, E> vertex) throws IOException {
-		IbisIdentifier owner = getOwner(vertex.getID());
+	private DataOutputStream getVertexStream(IbisIdentifier worker) {
+		if (!vertexOutStream.containsKey(worker)) {
+			ExposedByteArrayOutputStream buffer =
+				new ExposedByteArrayOutputStream(INPUT_VERTEX_BUFFER);
+			vertexBuffer.put(worker, buffer);
+			vertexOutStream.put(worker, new DataOutputStream(buffer));
+		}
+		return vertexOutStream.get(worker);
+	}
+	
+	private void flushInputVertices(IbisIdentifier owner) throws IOException {
 		SendPort sender = getSender(owner);
+		ExposedByteArrayOutputStream buffer = vertexBuffer.get(owner);
 		synchronized(sender) {
 			WriteMessage w = sender.newMessage();
 			w.writeInt(MessageReceiver.INPUT_MSG);
-			ByteArrayOutputStream buffer = new ByteArrayOutputStream(128);
-			DataOutputStream outStream = new DataOutputStream(buffer);
-			vertex.serialize(outStream);
 			w.writeInt(buffer.size());
-			w.writeArray(buffer.toByteArray());
+			w.writeArray(buffer.getBuffer(), 0, buffer.size());
 			w.finish();
 		}
+		buffer.reset();
 		activateWorker(owner);
+	}
+	
+	public void send(VertexState<V, E> vertex) throws IOException {
+		IbisIdentifier owner = getOwner(vertex.getID());
+		DataOutputStream vertexOutStream = getVertexStream(owner);
+		vertex.serialize(vertexOutStream);
+		if (vertexBuffer.get(owner).size() > INPUT_VERTEX_BUFFER - 4096) {
+			flushInputVertices(owner);		
+		}
+	}
+	
+	public void flushInputVertices() throws IOException {
+		for (IbisIdentifier worker : vertexBuffer.keySet()) {
+			if (vertexBuffer.size() > 0) {
+				flushInputVertices(worker);
+			}
+		}
 	}
 	
 	private void sendQueue(IbisIdentifier worker, OutgoingQueue<M> outQueue, 

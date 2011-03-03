@@ -111,6 +111,7 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 		
 		logger.info("Read " + readVertices + " vertices and " + reader);
 		reader.close();
+		messageRouter.flushInputVertices();
 	}
 	
 	private void loadReceivedInput() {
