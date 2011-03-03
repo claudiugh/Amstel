@@ -50,7 +50,7 @@ public class Node<V extends Value, E extends Value, M extends MessageValue> {
     		node = new Master<V, M>(ibis, nodes - 1, reader);
 	    } else {
 	    	node = new Worker<V, E, M>(ibis, master, vertexClass, 
-	    			vertexValueClass, edgeValueClass, messageClass);
+	    			vertexValueClass, edgeValueClass, messageClass, reader);
 	    }
     }
     

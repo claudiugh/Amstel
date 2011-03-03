@@ -11,7 +11,6 @@ import nl.vu.cs.amstel.graph.VertexFactory;
 import nl.vu.cs.amstel.graph.VertexState;
 import nl.vu.cs.amstel.graph.io.InputPartition;
 import nl.vu.cs.amstel.graph.io.Reader;
-import nl.vu.cs.amstel.graph.io.TextFileReader;
 import nl.vu.cs.amstel.msg.CombinedInboundQueue;
 import nl.vu.cs.amstel.msg.InboundQueue;
 import nl.vu.cs.amstel.msg.MessageFactory;
@@ -49,6 +48,7 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 	private ReceivePort receiver;
 	private WorkerBarrier barrier;
 	private IbisIdentifier[] partitions;
+	private Reader reader;
 	private InputPartition inputPartition;
 	
 	// vertex states
@@ -95,7 +95,7 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 	}
 	
 	private void readInput() throws Exception {
-		Reader reader = new TextFileReader(inputPartition);
+		reader.init(inputPartition);
 		int readVertices = 0;
 		while (reader.hasNext()) {
 			VertexState<V, E> vertexState = reader.nextVertex(vertexFactory);
@@ -282,10 +282,12 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 			Class<? extends Vertex<V, E, M>> vertexClass,
 			Class<V> vertexValueClass,
 			Class<E> edgeValueClass,
-			Class<M> messageClass)
+			Class<M> messageClass,
+			Reader reader)
 		throws IOException, InterruptedException {
 		// setup
 		this.ibis = ibis;
+		this.reader = reader;
 		this.master = master;
 		this.vertexClass = vertexClass;
 		messageFactory = new MessageFactory<M>(messageClass);

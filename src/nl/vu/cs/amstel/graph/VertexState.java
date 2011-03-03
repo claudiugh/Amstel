@@ -88,7 +88,14 @@ public class VertexState<V extends Value, E extends Value> {
 	}
 	
 	public String toString() {
-		return "[" + value + "]: " + edges; 
+		String edgeStr = "";
+		for (int i = 0; i < edges.length; i++) {
+			edgeStr += " ->" + edges[i];
+			if (!VertexFactory.hasNullEdgeValue()) {
+				edgeStr += "(" + edgeValues[i] + ")";
+			}
+		}
+		return vid + "[" + value + "]:" + edgeStr; 
 	}
 		
 }

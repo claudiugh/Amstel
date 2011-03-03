@@ -82,7 +82,7 @@ public class TextFileReader implements Reader {
 	 * @param partition
 	 * @throws Exception 
 	 */
-	public TextFileReader(InputPartition inputPartition) throws Exception {
+	public void init(InputPartition inputPartition) throws Exception {
 		if (inputPartition instanceof TextFilePartition) {
 			TextFilePartition partition = (TextFilePartition) inputPartition;
 			filename = partition.filename;

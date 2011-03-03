@@ -12,6 +12,9 @@ public interface Reader {
 	
 	void close() throws IOException;
 	
+	// this is called on the worker
+	void init(InputPartition inputPartition) throws Exception;
+	
 	<V extends Value, E extends Value> VertexState<V, E> 
 		nextVertex(VertexFactory<V, E> factory) throws IOException;
 	

@@ -10,6 +10,9 @@ import nl.vu.cs.amstel.user.Vertex;
 public class SSSPVertex extends Vertex<IntValue, IntValue, IntMessage> {
 
 	protected static Logger logger = Logger.getLogger("nl.vu.cs.amstel");
+	
+	private int SP_TH = 1000;
+	
 	// these must be initialized before the computation begins
 	public static String SRC = null;
 	public static String DST = null;
@@ -19,7 +22,11 @@ public class SSSPVertex extends Vertex<IntValue, IntValue, IntMessage> {
 		if (getSuperstep() == 0) {
 			getValue().value = Integer.MAX_VALUE;
 			return;
+		} else if (getSuperstep() > SP_TH) {
+			voteToHalt();
+			return;
 		}
+		
 		int mindist = (getID().equals(SRC)) ? 0 : Integer.MAX_VALUE;
 		for (IntMessage m : messages) {
 			if (m.value < mindist) {

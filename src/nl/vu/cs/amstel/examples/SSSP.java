@@ -2,7 +2,7 @@ package nl.vu.cs.amstel.examples;
 
 import nl.vu.cs.amstel.Node;
 import nl.vu.cs.amstel.graph.io.Reader;
-import nl.vu.cs.amstel.graph.io.TextFileReader;
+import nl.vu.cs.amstel.graph.io.WheelGraphGenerator;
 import nl.vu.cs.amstel.user.IntMessage;
 import nl.vu.cs.amstel.user.IntValue;
 import nl.vu.cs.amstel.user.MinIntAggregator;
@@ -31,7 +31,7 @@ public class SSSP {
 			throw new Exception("Source and destination not specified");
 		}
 		
-		Reader reader = new TextFileReader(filename);
+		Reader reader = new WheelGraphGenerator(filename);
 		Node<IntValue, IntValue, IntMessage> node =
 			new Node<IntValue, IntValue, IntMessage>(nodes, SSSPVertex.class,
 					IntValue.class, IntValue.class, IntMessage.class, reader);
