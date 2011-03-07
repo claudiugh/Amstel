@@ -26,7 +26,7 @@ public class TextFileReader implements Reader {
 	private long fileSize;
 
 	private MappedByteBuffer mappedMem;
-	private ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+	private ByteArrayOutputStream lineBuffer = new ByteArrayOutputStream();
 	private long offset;
 	private long length;
 	private long bytesRead = 0;
@@ -102,14 +102,14 @@ public class TextFileReader implements Reader {
 
 	private String readLine() {
 		byte b;
-		buffer.reset();
+		lineBuffer.reset();
 		while ((bytesRead < length) && ((b = mappedMem.get()) != '\n')) {
-			buffer.write(b);
+			lineBuffer.write(b);
 			bytesRead++;
 		}
 		bytesRead++;
 		
-		return buffer.toString();		
+		return lineBuffer.toString();		
 	}
 	
 	@SuppressWarnings("unchecked")

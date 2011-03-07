@@ -1,10 +1,11 @@
 package nl.vu.cs.amstel.examples;
 
 import nl.vu.cs.amstel.Node;
+import nl.vu.cs.amstel.graph.io.LognormGraphGenerator;
 import nl.vu.cs.amstel.graph.io.Reader;
-import nl.vu.cs.amstel.graph.io.WheelGraphGenerator;
 import nl.vu.cs.amstel.user.IntMessage;
 import nl.vu.cs.amstel.user.IntValue;
+import nl.vu.cs.amstel.user.MaxIntAggregator;
 import nl.vu.cs.amstel.user.MinIntAggregator;
 import nl.vu.cs.amstel.user.MinIntCombiner;
 
@@ -31,12 +32,13 @@ public class SSSP {
 			throw new Exception("Source and destination not specified");
 		}
 		
-		Reader reader = new WheelGraphGenerator(filename);
+		Reader reader = new LognormGraphGenerator(filename);
 		Node<IntValue, IntValue, IntMessage> node =
 			new Node<IntValue, IntValue, IntMessage>(nodes, SSSPVertex.class,
 					IntValue.class, IntValue.class, IntMessage.class, reader);
 		node.setCombiner(MinIntCombiner.class);
 		node.addAggregator(new MinIntAggregator("Destination"));
+		node.addAggregator(new MaxIntAggregator("Max-Outdegree"));
 		node.run();
 	}
 }

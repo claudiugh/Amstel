@@ -83,6 +83,10 @@ public class VertexState<V extends Value, E extends Value> {
 		return value;
 	}
 	
+	public int getOutdegree() {
+		return edges.length;
+	}
+	
 	public String[] getOutEdges() {
 		return edges;
 	}

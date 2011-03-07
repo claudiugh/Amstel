@@ -49,6 +49,10 @@ public abstract class Vertex<V extends Value, E extends Value,
 		return workerState.edgeIterator;
 	}
 	
+	public int getOutdegree() {
+		return state.getOutdegree();
+	}
+	
 	public void send(String toVertex, M m) {
 		try {
 			workerState.router.send(toVertex, m);

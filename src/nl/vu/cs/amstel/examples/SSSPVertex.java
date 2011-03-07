@@ -17,9 +17,13 @@ public class SSSPVertex extends Vertex<IntValue, IntValue, IntMessage> {
 	public static String SRC = null;
 	public static String DST = null;
 	
+	private static IntValue outdegree = new IntValue();
+	
 	@Override
 	public void compute(Iterable<IntMessage> messages) {
 		if (getSuperstep() == 0) {
+			outdegree.value = getOutdegree();
+			outputAggregate("Max-Outdegree", outdegree);
 			getValue().value = Integer.MAX_VALUE;
 			return;
 		} else if (getSuperstep() > SP_TH) {
