@@ -142,10 +142,11 @@ public class MessageRouter<V extends Value, E extends Value,
 	
 	public void flushInputVertices() throws IOException {
 		for (IbisIdentifier worker : vertexBuffer.keySet()) {
-			if (vertexBuffer.size() > 0) {
+			if (vertexBuffer.get(worker).size() > 0) {
 				flushInputVertices(worker);
-				sendFlush(worker);
 			}
+			activeWorkers.add(worker);
+			sendFlush(worker);
 		}
 		waitFlushAck();
 	}

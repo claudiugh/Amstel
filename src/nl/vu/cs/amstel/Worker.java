@@ -224,7 +224,6 @@ public class Worker<V extends Value, E extends Value, M extends MessageValue>
 		setupWorkerConnections();
 		// reading input and distribute vertexes
 		readInput();
-		messageRouter.flush();
 		// we synchronize here because we need to be sure that 
 		// all the input messages have been received
 		barrier.enter();
