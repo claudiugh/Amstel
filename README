@@ -1,3 +1,14 @@
-Amstel - a parallel large-scale graph processing
+README
+======
 
-It is inspired from Pregel.
+Amstel is a framework for processing large-scale graphs, based on the BSP computational model.
+
+PACKAGE DESCRIPTION
+===================
+
+src/		- source code for the framework
+graphs/		- examples of input data and scripts for generating graphs
+docs/		- documentation/reports
+proto/		- a prototype of Amstel, implemented on shared memory model (threads)
+build.xml	- ant build script
+
