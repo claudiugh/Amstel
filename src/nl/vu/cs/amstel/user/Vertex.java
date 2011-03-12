@@ -46,6 +46,7 @@ public abstract class Vertex<V extends Value, E extends Value,
 	}
 	
 	public OutEdgeIterator<E> getOutEdgeIterator() {
+		workerState.edgeIterator.reset();
 		return workerState.edgeIterator;
 	}
 	

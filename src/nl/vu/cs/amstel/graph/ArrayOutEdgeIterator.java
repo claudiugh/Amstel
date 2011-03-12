@@ -17,6 +17,10 @@ public class ArrayOutEdgeIterator<E extends Value> implements OutEdgeIterator<E>
 		this.values = values;
 	}
 	
+	public void reset() {
+		index = 0;
+	}
+	
 	@Override
 	public String getEdgeTarget() {
 		return edges[index];
