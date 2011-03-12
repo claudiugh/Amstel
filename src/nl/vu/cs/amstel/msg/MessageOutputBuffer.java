@@ -14,6 +14,8 @@ public class MessageOutputBuffer<M extends MessageValue>
 	public MessageOutputBuffer<M> prev = null;
 	public MessageOutputBuffer<M> next = null;
 	
+	public boolean markAsFilled = false;
+	
 	private DataOutputStream dataStream = new DataOutputStream(this);
 	private String dst; // destination vertex
 	

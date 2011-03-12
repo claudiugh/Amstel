@@ -45,6 +45,10 @@ public class SerializedOutgoingQueue<M extends MessageValue>
 			tail = null;
 		}
 		nonemptyBuffers--;
+		if (buffer.markAsFilled) {
+			filledBuffers--;
+		}
+		buffer.markAsFilled = false;
 		return buffer;
 	}
 	
@@ -107,8 +111,8 @@ public class SerializedOutgoingQueue<M extends MessageValue>
 		for (b = tail, l2 = 0; b != null && l2 < nonemptyBuffers; l2++, b = b.prev) {
 		}
 		if (b != null) {
-			System.exit(1);
 			logger.fatal("List is corrupt");
+			System.exit(1);
 		}
 	}
 	
@@ -148,7 +152,8 @@ public class SerializedOutgoingQueue<M extends MessageValue>
 			tail = buffer;
 		}
 		buffer.write(msg);
-		if (buffer.size() > FILLED_BUFF_SIZE_THOLD) {
+		if (buffer.size() > FILLED_BUFF_SIZE_THOLD && !buffer.markAsFilled) {
+			buffer.markAsFilled = true;
 			filledBuffers++;
 		}
 		// we have just written data in the buffer,
@@ -166,8 +171,7 @@ public class SerializedOutgoingQueue<M extends MessageValue>
 	
 	public void flushFilledBuffers(WriteMessage w) throws IOException {
 		// we know that are at least this number of filled buffers
-		sendBulk(w, FILLED_BUFF_CNT_THOLD);
-		filledBuffers -= FILLED_BUFF_CNT_THOLD;
+		sendBulk(w, filledBuffers);
 	}
 	
 	public void flush(WriteMessage w) throws IOException {
