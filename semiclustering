@@ -1,0 +1,4 @@
+#!/bin/bash
+
+CLASSPATH=lib/amstel-0.1.jar $IPL_HOME/bin/ipl-run -Dibis.server.address=localhost -Dibis.pool.name=amstel \
+    nl.vu.cs.amstel.examples.SemiClustering 4 "input/bidir-lognorm-v100.txt"

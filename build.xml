@@ -1,7 +1,7 @@
 <project name="Ibis IPL examples" default="build" basedir=".">
 
     <description>
-	Build file for the Ibis IPL applications.
+      Build file for Amstel framework
     </description>
 
     <!-- Global properties -->
@@ -9,12 +9,12 @@
     <property environment="env" />
     <property name="ibis" location="${env.IPL_HOME}" />
 
-    <property name="version-tag" value="" />
+    <property name="version-tag" value="0.1" />
 
     <property name="src" location="src" />
     <property name="tmp" location="tmp" />
     <property name="lib" location="lib" />
-    <property name="jar" location="lib/amstel${version-tag}.jar" />
+    <property name="jar" location="lib/amstel-${version-tag}.jar" />
 
     <target name="build" description="build the Amstel framework">
         <!-- Clean up -->
