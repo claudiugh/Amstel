@@ -1,0 +1,9 @@
+#!/bin/bash
+
+RELEASE=0.1
+DIR=amstel-$RELEASE
+rm -rf ./$DIR
+mkdir $DIR
+cp -r input maxval sssp semiclustering lib $DIR/
+zip -r $DIR.zip $DIR/*
+rm -rf ./$DIR
