@@ -1,0 +1,88 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Amstel - releases</title>
+<link rel="shortcut icon" href="images/amstel-icon.png" />
+<link rel="stylesheet" href="amstel.css" type="text/css" />
+</head>
+
+<body>
+<div id="container">
+	<div id="header">
+    	<a class="logo" href="/"></a>
+        <h2>large-scale graphs processing</h2>
+        <div class="clear"></div>
+    </div>
+    <div id="nav">
+    	<ul>
+        	<li><a href="index.html">About</a></li>
+        	<li><a href="releases.html">Releases</a></li>
+         <li><a href="docs.html">Documentation</a></li>
+         <li><a href="wishlist.html">Wishlist</a></li>           
+        </ul>
+    </div>
+    <div id="body">
+		<div id="content">
+			<h2>Future work</h2>
+			<p>
+				This page contains a list of features that are part of the future work
+				related with Amstel.
+			</p>
+				
+				
+			<div class="section-title">
+				Distributed filesystem dedicated for graph storage 
+			</div>
+			<div class="section-content">I/O is the biggest bottleneck that the
+framework currently has. Running algorithms for huge graphs means also
+reading efficiently this huge information. In the current version the
+input phase takes even more than the entire algorithm computation. Also
+due to limited I/O capabilities (text files for now) we cannot implement
+Writers because we cannot handle and coordinate efficiently such a huge
+amount of information.
+			</div>
+			<div class="section-title">
+			Multithreaded workers			
+			</div>
+			<div class="section-content">Currently only the main thread computes
+the vertices, but having multiple threads doing this will make use of
+the multi-core CPUs from DAS3. This means that the master node has to
+distribute multiple graph partitions to the same worker node, and that’s
+also benefic for load balancing.
+			</div>
+			
+			<div class="section-title">
+			Topology mutations
+			</div>
+			<div class="section-content">Doing the topology mutation operations
+like adding or removing edges should be straightforward since the vertex
+state is entirely in memory. The main problem is that if we do topology
+mutations, we would eventually want to write the new graph in a
+persistent storage, and we reach the Writers problem mentioned before.</div>
+        </div>
+        
+        <div class="sidebar">
+        	<!-- 
+            <ul>
+               <li>
+                    <h4><span>Jump to</span></h4>
+                    <ul class="blocklist">
+                        <li><a href="#r0.1">release 0.1</a></li>
+                    </ul>
+                </li>
+            </ul>
+          -->
+        </div>
+    	<div class="clear"></div>
+    </div>
+
+    <div id="footer">
+        <div class="footer-content">
+			<p>Copyright (c) 2011, Vrije Universiteit, Amsterdam, The Netherlands. 
+			All rights reserved.</p>
+		</div>
+    </div>
+</div>
+</body>
+</html>
