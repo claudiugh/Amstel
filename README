@@ -23,10 +23,11 @@ March 13, 2011
 
 This is the first release of the Amstel framework and it contains the basic functionality for running graph applications.
 Outline of the features included:
-	- generic applications, with parameterized types for vertex value, edge value and messages
+	- generic interface with parameterized types for vertex value, edge value and messages
+	- simple graph partitioning scheme with one partition per worker
 	- combiners
 	- aggregators
-	- input: text file, binary file with outdegree and live graph generators
+	- generic reader interface for input, with the current following implementations: text file, binary file with outdegree and live graph generators
 	- applications: Maximum Value, Single Source Shortest Path, Semi Clustering
 
 
