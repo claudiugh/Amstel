@@ -439,3 +439,23 @@ a.java {
 	width: 70px;
 	height: 105px;
 }
+
+.section-title {
+	border-top: 1px solid #CCC;
+	font-weight: bold;
+	padding: 5px 5px 5px 0;
+	margin: 15px 0 5px 0;
+	font-size: 14px;
+}
+
+.section-content {
+	margin: 5px 0 5px 0;
+}
+
+.section-content ul {
+	margin: 3px 0 3px 25px;
+}
+
+.section-content ul li {
+	padding: 1px 0 1px 0;
+}
