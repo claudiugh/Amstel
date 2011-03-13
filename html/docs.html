@@ -1,0 +1,254 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Amstel - user manual and documentation</title>
+<link rel="shortcut icon" href="images/amstel-icon.png" />
+<link rel="stylesheet" href="amstel.css" type="text/css" />
+</head>
+
+<body>
+<div id="container">
+	<div id="header">
+    	<a class="logo" href="/"></a>
+        <h2>large-scale graphs processing</h2>
+        <div class="clear"></div>
+    </div>
+    <div id="nav">
+    	<ul>
+        	<li><a href="index.html">About</a></li>
+        	<li><a href="releases.html">Releases</a></li>
+         <li><a href="docs.html">Documentation</a></li>
+         <li><a href="examples.html">Wishlist</a></li>           
+        </ul>
+    </div>
+    <div id="body">
+		<div id="content">
+			<h2>User manual and documentation</h2>
+			<p>
+				This page contains information about how to use Amstel and how to start
+				developing applications on it. The first section is a tutorial on how 
+				to setup Amstel and run an existing application, the second section is a
+				tutorial on how to create a very simple application, and the third section
+				presents the file formats used for reading/generating graphs.
+			</p>
+				
+			<div class="section-title" id="run">
+				Running an Amstel application
+			</div>
+			<div class="section-content">
+			Before you can run an Amstel application you have to do the setup:
+			<ol>
+				<li>
+				<p>
+				Setup <a href="http://www.cs.vu.nl/ibis/downloads.html">Ibis IPL</a>. Follow
+				the install instructions from the IPL package. 
+				</p>
+				<p>
+				The result of this step should be a working IPL server. An example:
+				</p>
+				<code>
+				claudiugh@ubuntu:~/amstel$ <b>ipl-2.2/bin/ipl-server --events </b><br />
+				Ibis server running on 192.168.96.128-8888#a6.3d.c4.e0.ee.7a.00.00.16.a1.00.0c.29.41.a9.db~claudiugh <br />
+				...
+				</code>
+				</li>
+				<li>
+				Configure <b>log4j.properties</b> file with the settings for Amstel, so that you
+				can see the output from the Master node. A common configuration is:
+				<code>
+				log4j.logger.nl.vu.cs.amstel.master=info <br />
+				log4j.logger.nl.vu.cs.amstel=error
+				</code>
+				</li>
+			</ol>
+			<p>
+			To run the application, you have to firstly start the IPL server. If you are running 
+			on DAS3, you can start the server on the front-end node. Now you
+			have to start multiple instances of the applications, preferably on separate
+			machines. Here is how you can start a node with the Maximum-Value application:
+			<code>
+			#!/bin/bash <br />
+
+			CLASSPATH=lib/amstel-0.1.jar $IPL_HOME/bin/ipl-run <br />
+			-Dibis.server.address=fs0.das3.cs.vu.nl -Dibis.pool.name=amstel 
+			<b>nl.vu.cs.amstel.examples.MaxvalRunner 4 "input/small-graph-v10.txt" </b>
+			</code> 
+			In the case of Maxval application, it takes two parameters: the number of nodes (instances) used
+			and the input file address. In this case the input graph is a weighted graph with 10 vertices.
+			</p>
+			<p>The previous command is just for starting a single node. If you run on DAS3, you may issue 
+			a <b>prun</b> command:
+			<code>
+			prun -np 4 -v -1 -o log ./maxval
+			</code>
+			The number of nodes that you specify includes the Master node, so in the previous
+			example we will have only 3 worker nodes.
+			</p>
+			</div>
+
+			<div class="section-title" id="app">
+				How to create an application
+			</div>
+
+			<div class="section-content">
+				<ol>
+				<li>
+				<p>
+				<b>Define types</b>. Firstly you have to design your algorithm with
+				the BSP paradigm and you should figure out what type of vertex value,
+				edge value and message value you need (if any). Predefined classes are
+				available for working with integer values (<a href="https://github.com/claudiugh/Amstel/blob/master/src/nl/vu/cs/amstel/user/IntValue.java">IntValue</a>
+				for vertex or edge value and 
+				<a href="https://github.com/claudiugh/Amstel/blob/master/src/nl/vu/cs/amstel/user/IntMessage.java">IntMessage</a> for messages).
+				If you don`t need edge value, you can specify a NullValue, which will reduce a lot
+				the amount of memory allocated.
+				</p>
+				<p>
+				If the predefined types do not suite your needs, you can implement your own
+				by extending <a href="https://github.com/claudiugh/Amstel/blob/master/src/nl/vu/cs/amstel/user/Value.java">Value</a> 
+				and <a href="https://github.com/claudiugh/Amstel/blob/master/src/nl/vu/cs/amstel/user/MessageValue.java">MessageValue</a> classes. 
+				</p>
+				</li>
+				<li>
+				<p>
+					<b>Implement your algorithm</b>. To implement your algorithm you have
+					to extend the generic abstract <a href="https://github.com/claudiugh/Amstel/blob/master/src/nl/vu/cs/amstel/user/Vertex.java">Vertex</a> class, 
+					more exactly the <b>compute()</b> method. The key guideline is to avoid
+					creating objects and do complex computation in this method. We strongly suggest
+					to screen the <a href="https://github.com/claudiugh/Amstel/tree/master/src/nl/vu/cs/amstel/examples">existing applications</a> to see how the API can be used. 
+				</p>
+				</li>
+				<li>
+				<p>
+					<b>Write the runner class</b>. This is the entry point to your 
+					application, that contains the <b>main</b> method and includes
+					parsing parameters and configuring your Amstel instance by choosing
+					a certain Reader for input format or setting a Combiner for messages. 
+				</p>
+				</li>
+				</ol>
+			</div>
+
+			<div class="section-title" id="input">
+				Input file formats
+			</div>
+			<div class="section-content">
+			<ul>
+			<li>
+			<p><b>Text file format</b>: the file contains each vertex from the graph on a
+			separate line. Each line contains a sequence of values separated by whitespaces.
+			The first values is the vertex id; the second value is the vertex value; the 
+			third value is the number of edges (E); following are E pairs of values, the 
+			first value being edge target id and the second one the edge value (cost).
+			</p>
+			<p>
+			Here is an example of a simple graph with 10 vertices: 
+			</p>
+			<code>
+V0 0 3 V1 1 V5 20 V4 2 <br />
+V1 0 1 V2 1 <br />
+V2 0 1 V3 10 <br />
+V3 0 1 V4 1 <br />
+V4 0 1 V5 1 <br />
+V5 0 1 V6 1 <br />
+V6 0 1 V7 1 <br />
+V7 0 1 V8 1 <br />
+V8 0 1 V9 1 <br />
+V9 0 1 V0 1
+			</code>
+			<p>
+			In this example, the vertex V0 has an associated value of 0 and 3 edges: 
+			to V1 with a cost of 1, to V5 of cost 20 and to V4 of cost 2.
+			</p>
+			</li>
+			
+			<li>
+			<p><b>Binary outdegree format</b>. This simple format is used in combination 
+			with Lognormal Distribution of the Outdegree Generator and it contains one integer (4 bytes)
+			for each vertex that represents the vertex outdegree (number of edges).</p>
+			</li>
+			
+			</ul>
+			</div>
+			
+			<div class="section-title" id="gen">
+				Graph generators
+			</div>
+			<div class="section-content">
+			To test your application it is often more convenient to use a graph generator
+			than real data because you can focus more on the algorithm itself rather 
+			than coping with erroneous input.
+			<ol>
+				<li>
+				On-the-fly generators
+					<ol>
+						<li>
+						<p><b>Wheel graph generator</b>. A wheel graph is a very simple graph
+						in which all vertices are part of a logical ring and every vertex V is connected 
+						to the next E vertices of the ring. The graph is always strongly connected
+						and it can be used to see how the algorithms behaves when varying the number 
+						of edges per vertex. 
+						</p>
+						<p>
+						This graph generator is implemented very efficient in a such a way
+						that all vertices are generated on their host worker node, so no I/O is involved
+						in the input phase, which reduces the overall execution time a lot. This is a reason
+						it is indicated to be used in the initial testing of the application.
+						</p>
+						<p>
+							To use this graph generator you have to supply a text file that contains on the
+							first line 4 values separated by white-spaces: the number of vertices, the number
+							of edges per vertex, the maximum value admitted as a vertex value and the 
+							maximum value for edge values. 
+						</p>
+						</li>
+					</ol>
+				</li>
+				<li>
+				<p>Offline generators</p>
+				<p>These generators are basically one <a href="https://github.com/claudiugh/Amstel/blob/master/graphs/gen_graph.py">script</a> 
+				that is used to generate graphs with the formats described before. There are
+				three types of graphs that can be generated: </p>
+				<ol>
+					<li><b>wheel</b> - Wheel graph. A graph exactly as the one described before. The difference 
+					is that this graph stays on a text file, whereas the previous one was generated at runtime.
+					</li>
+					<li><b>lnod</b> - Log-normal Out-Degree. This is a graph with similar with the wheel graph, but
+					the out-degree has a log-normal distribution. The output of is a binary file (described before).</li>
+					<li><b>lnndir</b> - Log-normal Non-directed. This is a non-directed (edges are bidirectional) 
+					random graph with a log-normal distribution of the out-degree. The output is a text file.</li>
+				</ol>
+				
+				</li>
+				
+			</ol>
+			</div>
+
+        </div>
+        
+        <div class="sidebar">
+            <ul>
+               <li>
+                    <h4><span>Sections</span></h4>
+                    <ul class="blocklist">
+                        <li><a href="#run">Running Amstel</a></li>
+                        <li><a href="#app">How to create an application</a></li>
+                        <li><a href="#input">Input file formats</a></li>
+                        <li><a href="#gen">Graph generators</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    	<div class="clear"></div>
+    </div>
+
+    <div id="footer">
+        <div class="footer-content">
+			<p>Copyright (c) 2011, Vrije Universiteit, Amsterdam, The Netherlands. 
+			All rights reserved.</p>
+		</div>
+    </div>
+</div>
+</body>
+</html>

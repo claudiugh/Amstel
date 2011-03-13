@@ -41,6 +41,7 @@ code, blockquote {
 code {
 	background-color: #ddd;
 	border: none;
+	font-size: 11px;
 }
 blockquote {
 	border-left: 5px solid #2B84C0;
@@ -450,12 +451,13 @@ a.java {
 
 .section-content {
 	margin: 5px 0 5px 0;
+	line-height: 1.5em;
 }
 
 .section-content ul {
 	margin: 3px 0 3px 25px;
 }
 
-.section-content ul li {
+.section-content li {
 	padding: 1px 0 1px 0;
 }
