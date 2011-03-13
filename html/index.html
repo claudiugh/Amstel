@@ -1,0 +1,154 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Amstel - large scale graphs processing framework</title>
+<link rel="shortcut icon" href="images/amstel-icon.png" />
+<link rel="stylesheet" href="amstel.css" type="text/css" />
+</head>
+
+<body>
+<div id="container">
+	<div id="header">
+    	<a class="logo" href="/"></a>
+        <h2>large-scale graphs processing</h2>
+        <div class="clear"></div>
+    </div>
+    <div id="nav">
+    	<ul>
+        	<li><a href="index.html">About</a></li>
+        	<li><a href="releases.html">Releases</a></li>
+         <li><a href="docs.html">Documentation</a></li>
+         <li><a href="examples.html">Wishlist</a></li>           
+        </ul>
+    </div>
+    <div id="body">
+		<div id="content">
+			<h2>About Amstel</h2>
+				<p>
+				Amstel is a framework for processing large-scale graphs following the model
+				published by Google called <a href="http://portal.acm.org/citation.cfm?id=1582723">Pregel</a>.
+				The motivation behind building such a framework is to hide the complexity of developing 
+				parallel and distributed systems under a generic framework that helps its users to focus
+				more on the problem by offering a computational model and mechanisms to express (almost) any graph algorithm.
+				It is somehow similar with the Map-Reduce paradigm, except that it is for large graphs and not for large arrays.
+				</p>
+				<p>
+				Amstel is implemented in Java, on top of the <a href="http://www.cs.vu.nl/ibis/ipl.html">IPL communication library</a>,
+			 	and it is primarily intented, but not limited, to be run on <a href="http://www.cs.vu.nl/das3/">DAS3</a> and 
+			 	<a href="http://www.cs.vu.nl/das4/">DAS4</a> clusters from <a href="http://www.vu.nl">Vrije Universiteit Amsterdam</a>. 
+				</p>
+				
+				<h3>Computational model</h3>
+				<p>
+				The computational model origins from 
+				<a href="http://portal.acm.org/citation.cfm?id=79181">BSP (Bulk Synchronous Parallel) model</a> 
+				published by Leslie G. Valiant in 1990 as an alternative to the von Neumann model for hardware-level computation.
+				The programs are running in a sequence of iterations called super-steps, in which each vertex from the graph
+				can send messages to other vertices, modify its state or read messages received from the previous super-step.
+				The number of super-steps is not known in advance and the system terminates when there are no active vertices.
+				</p>
+				
+				<p>
+				The computation is centered around the vertex and the user has to provide the <b>compute()</b> method
+				that will be run on each vertex in an unspecified order, in each super-step. The algorithm terminates when
+				there are no active vertices in the system. Initially, all vertices are active. In a given super-step, a vertex
+				can decide to deactivate itself by a <b>voteToHalt()</b> operation and any vertex becomes automatically active
+				when it receives a message from another vertex.				
+				</p>
+				
+				<h3>Architecture overview</h3>
+				<p>
+				The distributed system behind Amstel has a centralized architecture, similar with the one 
+				described by <a href="http://portal.acm.org/citation.cfm?id=1582723">Pregel</a>.
+				<img style="float: right;" src="images/centralized_server.jpg" /> 
+				A central node called the <b>Master</b> node is used for splitting the input data, partitioning the graph and 
+				for global synchronization during each super-step. <b>Worker</b> nodes keep the assigned partition of the graph
+				in memory and they are responsible for running the <b>compute()</b> method on each vertex, to offer each 
+				vertex the messages received in the previous super-step and send the messages for the next super-step efficiently. 
+				</p>
+            <p>The communication primitives used are the ones exposed by IPL and it involves synchronous one-to-many communication
+            between the <b>Master</b> and the <b>Worker</b> nodes, but also asynchronous one-to-one communication between
+            the <b>Worker</b> nodes for delivering messages across super-steps.</p>
+            
+            <h3>License</h3>
+            <p> Amstel is released under the BSD License. This is one of the most permissible software license and lets you integrate with 
+            other BSD, GPL or proprietary software. For a complete reference of the license you can find it on the root directory of the repository.
+            </p>
+        </div>
+        
+        <div class="sidebar">
+            <ul>
+            	<li>
+            		<h4>Keywords</h4>
+            		<div class="keyword">large-scale graphs</div>
+            		<div class="keyword">BSP</div>
+            		<div class="keyword">java</div>
+            		<div class="keyword">ipl</div>
+            		<div class="keyword">VU</div>
+            		<div class="keyword">graph algorithms</div>
+            		<div class="keyword">distributed systems</div>
+            		<div class="clear"></div>
+            	</li>
+            	<!--
+               <li>
+                    <h4><span>Navigate</span></h4>
+                    <ul class="blocklist">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="examples.html">Examples</a></li>
+                        <li><a href="#">Products</a></li>
+                        <li><a href="#">Solutions</a></li>
+                        <li><a href="#">Contact</a></li>
+                    </ul>
+                </li>
+                -->
+                
+                <li>
+                	<h4>Quick Download</h4>
+                	<ul>
+                		<li>latest release from March 11, 2011: <br /> 
+                		<a href="#" class="high">amstel-0.1.zip</a>
+                		</li>
+                		<li>
+                			<p>The source code is available on the <a href="https://github.com/claudiugh/Amstel">Amstel Github project</a>. For more information about the releases, check the 
+                			<a href="#">release page</a>.</p>                		
+                		</li>
+                	</ul>
+                </li>
+                <li>
+                	<h4>People</h4>
+                	<ul class="people">
+                		<li>
+                			<a href="http://www.few.vu.nl/~bal/">Henri E. Bal</a>
+                			<div class="descr">Coordinator</div>
+                		</li>
+                		<li>
+                			<a href="http://www.few.vu.nl/~e.krepska/">Elzbieta Krepska</a>
+                			<div class="descr">Coordinator</div>
+                		</li>
+                		<li>
+                			<a href="https://github.com/claudiugh">Claudiu Dan Gheorghe</a>
+                			<div class="descr">PDCS MSc Student</div>
+                		</li>
+                	</ul>
+                </li>
+            </ul>
+            <div class="banners">
+	            <a href="http://www.java.com/" class="banner java"></a>
+	            <a href="http://git-scm.com/" class="banner git"></a>
+	            <a href="http://www.cs.vu.nl/ibis" class="banner ibis"></a>
+	            <a href="http://www.vu.nl/" class="banner vu"></a>
+            </div>
+        </div>
+    	<div class="clear"></div>
+    </div>
+
+    <div id="footer">
+        <div class="footer-content">
+			<p>Copyright (c) 2011, Vrije Universiteit, Amsterdam, The Netherlands. 
+			All rights reserved.</p>
+		</div>
+    </div>
+</div>
+</body>
+</html>
